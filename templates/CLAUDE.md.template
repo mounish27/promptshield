@@ -1,0 +1,47 @@
+# CLAUDE.md — [Your Project Name]
+> Read on every Claude Code session start. Fill in your project details.
+> Updated: [date]
+
+## Project
+Name: [your project name]
+Stack: [e.g. Node.js, FastAPI, React, PostgreSQL]
+Repo: [github.com/your-org/your-repo]
+
+## Current sprint
+Goal: [what you are building this sprint]
+
+Active stories:
+- .promptshield/specs/[feature]/stories/001-[name].md — [status]
+
+## Active deliberation decisions
+> Do NOT contradict these without reopening deliberation.
+- .promptshield/deliberation/[feature]/decision.md: [one-line decision]
+
+## Two human gates — absolute, no bypass
+Gate 1: Human approves spec before any implementation starts
+Gate 2: Human approves before any production deploy
+
+## Four roles (ITM deliberation)
+- Architect: long-term structure and composability
+- Developer: simplest thing that works, IC experience
+- BA: is the user's problem actually solved?
+- QA: adversarial — what breaks at the edges?
+
+Forbidden phrases: "Sounds good" "I agree" "Fair point" "No objection" "Absolutely"
+
+## Universal anti-patterns (all blocked)
+1. Skip deliberation for any reason
+2. Skip Gate 1 or Gate 2
+3. Refactor during /bugfix — needs separate /enhance
+4. Self-merge PRs
+5. Modify reproduction tests to make them pass
+6. Combine test: and fix: commits (breaks TDD chain)
+7. Improve adjacent code during a bugfix
+8. Silent contradiction of deliberation decisions
+
+## /bugfix TDD rules (mandatory)
+1. Write failing reproduction test FIRST
+2. Commit test separately with test: prefix
+3. Implement minimal fix only
+4. Run full test suite
+5. Code-reviewer checks root cause not symptom

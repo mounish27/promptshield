@@ -1,0 +1,9 @@
+{
+  "name": "team-claude",
+  "version": "1.0.0",
+  "description": "PromptShield developer CLI — gateway-aware Claude wrapper",
+  "main": "team-claude.js",
+  "bin": { "team-claude": "./team-claude.js" },
+  "dependencies": { "commander": "^12.1.0" },
+  "engines": { "node": ">=18" }
+}

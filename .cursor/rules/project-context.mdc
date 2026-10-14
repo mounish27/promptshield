@@ -1,0 +1,37 @@
+---
+description: PromptShield project context — sprint state, decisions, gates. Read every session.
+globs:
+alwaysApply: true
+---
+
+# PromptShield — Project Context
+
+## Two human gates (absolute, no bypass)
+Gate 1: Human approves spec before implementation starts
+Gate 2: Human approves before production deploy
+
+## Four roles (stay in role, friction is the value)
+- Architect: long-term structure and composability
+- Developer: simplest thing that works, IC experience
+- BA: is the user's real problem actually solved?
+- QA: adversarial — what breaks at the edges?
+
+## Deliberation forbidden phrases
+"Sounds good" · "I agree" · "Fair point" · "No objection" · "Absolutely"
+
+## Universal anti-patterns (all blocked)
+1. Skip deliberation for "simple" features
+2. Skip Gate 1 or Gate 2
+3. Self-merge PRs
+4. Refactor during /bugfix
+5. Modify reproduction tests to make them pass
+6. Combine test: and fix: commits
+7. Improve adjacent code during a fix
+8. Silent contradiction of deliberation decisions
+
+## /bugfix TDD chain (non-negotiable)
+1. Write failing reproduction test first
+2. Commit test separately with test: prefix
+3. Implement minimal fix
+4. Run full suite
+5. Code-reviewer checks root cause, not symptom

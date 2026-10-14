@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptShield — Mode B: Personal</title>
+<style>
+:root{
+  --bg:#07090F;--surface:#0D1117;--panel:#111827;
+  --border:#1F2937;--border2:#374151;
+  --text:#F9FAFB;--muted:#6B7280;--dim:#374151;
+  --blue:#3B82F6;--green:#10B981;--orange:#F59E0B;
+  --red:#EF4444;--purple:#8B5CF6;--cyan:#06B6D4;
+  --font:'JetBrains Mono','Fira Code',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;min-height:100vh}
+input,select,textarea{font-family:var(--font);font-size:12px;background:var(--bg);border:1px solid var(--border2);color:var(--text);border-radius:7px;padding:8px 11px;outline:none;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--blue)}
+button{font-family:var(--font);cursor:pointer;border:none;border-radius:7px;font-size:12px;transition:all .15s}
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.brand{padding:20px 18px 14px;border-bottom:1px solid var(--border)}
+.brand-name{font-size:14px;font-weight:700;letter-spacing:-.02em}
+.brand-name span{color:var(--cyan)}
+.brand-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.brand-mode{display:inline-flex;align-items:center;gap:4px;background:var(--cyan)20;border:1px solid var(--cyan)40;color:var(--cyan);padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;margin-top:6px;letter-spacing:.06em}
+.nav{flex:1;padding:10px 8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:7px;color:var(--muted);cursor:pointer;margin-bottom:2px;border:1px solid transparent;font-size:12px;transition:all .15s}
+.nav-item:hover{background:var(--panel);color:var(--text)}
+.nav-item.active{background:var(--cyan)20;border-color:var(--cyan)40;color:var(--cyan)}
+.nav-icon{font-size:14px;width:18px;text-align:center}
+.sidebar-foot{padding:14px 16px;border-top:1px solid var(--border)}
+.gw-row{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot.g{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+.dot.r{background:var(--red)}
+.dot.o{background:var(--orange)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.pg-title{font-size:15px;font-weight:700}
+.pg-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.content{flex:1;padding:24px 28px;overflow-y:auto}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:15px 17px;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat.c::before{background:linear-gradient(90deg,var(--cyan),transparent)}
+.stat.g::before{background:linear-gradient(90deg,var(--green),transparent)}
+.stat.o::before{background:linear-gradient(90deg,var(--orange),transparent)}
+.stat.p::before{background:linear-gradient(90deg,var(--purple),transparent)}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px}
+.stat-val{font-size:26px;font-weight:700;line-height:1}
+.stat-sub{font-size:10px;color:var(--muted);margin-top:5px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.ph{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.pt{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.pb{padding:16px 18px}
+table{width:100%;border-collapse:collapse}
+th{padding:7px 11px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);white-space:nowrap;font-weight:500}
+td{padding:10px 11px;border-bottom:1px solid #1F293760}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#1F293730}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:5px;font-size:10px;font-weight:700}
+.bg{background:#10B98120;color:var(--green);border:1px solid #10B98130}
+.br{background:#EF444420;color:var(--red);border:1px solid #EF444430}
+.bo{background:#F59E0B20;color:var(--orange);border:1px solid #F59E0B30}
+.bb{background:#3B82F620;color:var(--blue);border:1px solid #3B82F630}
+.bc{background:#06B6D420;color:var(--cyan);border:1px solid #06B6D430}
+.btn{padding:7px 14px;font-size:11px;font-weight:600}
+.btn-primary{background:var(--cyan);color:var(--bg)}
+.btn-primary:hover{background:#0891B2}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--text);color:var(--text)}
+.btn-danger{background:#EF444420;border:1px solid #EF444430;color:var(--red)}
+.btn-green{background:#10B98120;border:1px solid #10B98130;color:var(--green)}
+.frow{margin-bottom:13px}
+.flabel{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;display:block}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--panel);border:1px solid var(--border2);border-radius:9px;padding:12px 18px;font-size:12px;z-index:200;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px #000A;animation:si .2s}
+@keyframes si{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+.tabs{display:flex;gap:4px;margin-bottom:16px}
+.tab{padding:5px 13px;border-radius:6px;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:11px}
+.tab.active{background:var(--cyan)20;border-color:var(--cyan)40;color:var(--cyan)}
+.device-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px}
+.device-icon{font-size:28px;width:44px;text-align:center;flex-shrink:0}
+.device-info{flex:1}
+.device-name{font-weight:700;font-size:13px;margin-bottom:3px}
+.device-meta{font-size:11px;color:var(--muted)}
+.device-stats{display:flex;gap:16px;margin-top:6px}
+.device-stat{font-size:11px}
+.device-stat span{color:var(--muted)}
+.device-actions{display:flex;gap:6px;flex-shrink:0}
+.bar-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden;flex:1}
+.bar-fill{height:100%;border-radius:2px;transition:width .5s}
+.bar-wrap{display:flex;align-items:center;gap:8px;min-width:120px}
+.log-row{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid #1F293750;font-size:11px}
+.log-row:last-child{border:none}
+/* Code editor */
+.code-editor{background:var(--bg);border:1px solid var(--border2);border-radius:8px;overflow:hidden}
+.code-editor-head{padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface)}
+.code-editor-body textarea{background:var(--bg);border:none;padding:14px 16px;font-family:var(--font);font-size:11px;line-height:1.7;color:var(--text);width:100%;resize:none;min-height:320px;outline:none}
+/* Prompt rewrite demo */
+.rewrite-box{background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;margin-bottom:8px}
+.rewrite-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.rewrite-text{font-size:12px;color:var(--text);line-height:1.6}
+.arrow-down{text-align:center;color:var(--cyan);font-size:18px;margin:4px 0}
+.rewrite-improved{background:var(--cyan)08;border:1px solid var(--cyan)40;border-radius:8px;padding:12px 14px}
+.rewrite-improved .rewrite-text{color:var(--cyan)}
+/* Alert */
+.alert-info{background:var(--cyan)15;border:1px solid var(--cyan)40;color:var(--cyan);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:14px;display:flex;align-items:flex-start;gap:8px}
+.alert-warn{background:var(--orange)15;border:1px solid var(--orange)40;color:var(--orange);padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:14px;display:flex;align-items:flex-start;gap:8px}
+/* MacBook setup steps */
+.steps{counter-reset:step}
+.step{display:flex;gap:12px;margin-bottom:16px;align-items:flex-start}
+.step-num{width:26px;height:26px;border-radius:50%;background:var(--cyan)20;border:1px solid var(--cyan)40;color:var(--cyan);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.step-body{flex:1}
+.step-title{font-weight:700;font-size:12px;margin-bottom:4px}
+.step-desc{font-size:11px;color:var(--muted);line-height:1.6}
+code{background:var(--border);padding:1px 6px;border-radius:4px;font-size:11px;color:var(--cyan)}
+.copy-line{display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:8px 12px;margin-top:6px}
+.copy-line span{flex:1;font-size:11px;color:var(--cyan);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy-btn{padding:3px 10px;background:var(--border);border:1px solid var(--border2);color:var(--muted);border-radius:4px;cursor:pointer;font-size:10px;white-space:nowrap;flex-shrink:0}
+.copy-btn:hover{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-name">⬡ Prompt<span>Shield</span></div>
+    <div class="brand-sub">Personal Device Dashboard</div>
+    <div class="brand-mode">⌘ MODE B — PERSONAL</div>
+  </div>
+  <nav class="nav" id="nav">
+    <div class="nav-item active" onclick="go('overview',this)"><span class="nav-icon">◈</span>My Overview</div>
+    <div class="nav-item" onclick="go('devices',this)"><span class="nav-icon">💻</span>My MacBooks</div>
+    <div class="nav-item" onclick="go('claude-md',this)"><span class="nav-icon">📄</span>CLAUDE.md</div>
+    <div class="nav-item" onclick="go('rewriter',this)"><span class="nav-icon">✨</span>Prompt Rewriter</div>
+    <div class="nav-item" onclick="go('activity',this)"><span class="nav-icon">≡</span>My Activity</div>
+    <div class="nav-item" onclick="go('setup',this)"><span class="nav-icon">⚙</span>Setup MacBook</div>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="gw-row"><div class="dot g" id="gw-dot"></div><span id="gw-lbl">Connecting...</span></div>
+    <div style="font-size:10px;color:var(--dim);margin-top:5px" id="gw-url"></div>
+    <div style="margin-top:10px;display:flex;gap:6px">
+      <a href="index.html" style="font-size:10px;color:var(--muted);text-decoration:none;background:var(--border);padding:3px 8px;border-radius:4px">Team Admin →</a>
+    </div>
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="pg-title" id="pg-title">My Overview</div>
+      <div class="pg-sub" id="pg-sub">Personal usage across all MacBooks</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="user-name" style="font-size:11px;color:var(--muted)">Not connected</span>
+      <button class="btn btn-ghost" onclick="load()">↺ Refresh</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div id="page-overview">
+      <div class="stats">
+        <div class="stat c"><div class="stat-label">MacBooks active</div><div class="stat-val" id="s0">—</div><div class="stat-sub" id="s0s">registered devices</div></div>
+        <div class="stat g"><div class="stat-label">Tokens today</div><div class="stat-val" id="s1">—</div><div class="stat-sub" id="s1s">across all devices</div></div>
+        <div class="stat o"><div class="stat-label">Prompts rewritten</div><div class="stat-val" id="s2">—</div><div class="stat-sub">today by DevGuard</div></div>
+        <div class="stat p"><div class="stat-label">Tokens saved</div><div class="stat-val" id="s3">—</div><div class="stat-sub">by prompt improvement</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div class="panel">
+            <div class="ph"><span class="pt">Usage by device</span></div>
+            <div id="ov-devices" style="padding:8px 0"></div>
+          </div>
+          <div class="panel">
+            <div class="ph"><span class="pt">Recent activity</span></div>
+            <div id="ov-log" style="padding:0 18px 8px"></div>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <div class="ph"><span class="pt">DevGuard activity today</span></div>
+            <div class="pb">
+              <div id="dg-breakdown"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph"><span class="pt">CLAUDE.md status</span><button class="btn btn-ghost" onclick="go('claude-md',null)" style="font-size:10px">Edit →</button></div>
+            <div class="pb" id="claude-md-status"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MY MACBOOKS -->
+    <div id="page-devices" style="display:none">
+      <div class="alert-info">
+        <span>💻</span>
+        <span>Each MacBook authenticates separately. Each gets its own token, usage tracking, and DevGuard enforcement. Revoke any device instantly without affecting others.</span>
+      </div>
+      <div id="devices-list"></div>
+      <div class="panel" style="margin-top:6px;background:#06B6D408;border-color:var(--cyan)40">
+        <div class="ph" style="border-color:var(--cyan)40"><span class="pt" style="color:var(--cyan)">Pre-generate Device IDs</span><span style="font-size:10px;color:var(--muted)">Admin distributes these — one per device</span></div>
+        <div class="pb">
+          <div class="alert-info" style="margin-bottom:12px"><span>ℹ</span><span>Generate a batch of Device IDs now. Each one activates on first install. Share <code>DID-XXXX-XXXX-XXXX</code> with each device privately.</span></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="pregen-count" style="max-width:100px">
+              <option value="1">1 ID</option>
+              <option value="2">2 IDs</option>
+              <option value="4" selected>4 IDs</option>
+              <option value="8">8 IDs</option>
+              <option value="10">10 IDs</option>
+            </select>
+            <input id="pregen-label" placeholder="Label e.g. Shri personal devices" style="flex:1">
+            <button class="btn btn-primary" onclick="pregenIds()" style="white-space:nowrap">Generate IDs</button>
+          </div>
+          <div id="pregen-result" style="margin-top:10px"></div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:6px">
+        <div class="ph"><span class="pt">Add a device manually</span></div>
+        <div class="pb">
+          <div class="fgrid" style="margin-bottom:12px">
+            <div class="frow"><label class="flabel">Device name</label><input id="new-device-name" placeholder="MacBook Pro 16 — Studio"></div>
+            <div class="frow"><label class="flabel">Mode</label>
+              <select id="new-device-mode">
+                <option value="api">PromptShield API (token tracked)</option>
+                <option value="max">Claude Max (local validation only)</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="addDevice()">+ Add device & generate token</button>
+          <div id="new-device-result" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLAUDE.MD EDITOR -->
+    <div id="page-claude-md" style="display:none">
+      <div class="alert-info" style="margin-bottom:14px">
+        <span>📄</span>
+        <div>
+          <div style="font-weight:700;margin-bottom:2px">CLAUDE.md — shared across all your MacBooks</div>
+          <div>Edit here → Save → all your devices auto-sync on next session start. Claude Code reads this on every session — injects sprint context, decisions, and anti-patterns automatically.</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 260px;gap:16px">
+        <div>
+          <div class="code-editor">
+            <div class="code-editor-head">
+              <span style="font-size:11px;color:var(--muted)">CLAUDE.md</span>
+              <div style="display:flex;gap:6px">
+                <span id="md-length" style="font-size:10px;color:var(--muted)">0 chars</span>
+                <button class="btn btn-primary" onclick="saveCLAUDEmd()">Save & sync to all devices</button>
+              </div>
+            </div>
+            <div class="code-editor-body">
+              <textarea id="claude-md-editor" oninput="updateMdLength()" placeholder="# CLAUDE.md — Your Project Context
+> Read on every session start.
+
+## Current sprint
+Goal: ...
+
+## Active decisions
+- .deliberation/feature/decision.md: Use X not Y
+
+## Anti-patterns
+- No scope creep
+- No gate bypasses"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel" style="margin-bottom:12px">
+            <div class="ph"><span class="pt">Sync status</span></div>
+            <div class="pb" id="md-sync-status">
+              <div style="font-size:11px;color:var(--muted)">Save to sync to all devices</div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph"><span class="pt">What this injects</span></div>
+            <div class="pb">
+              <div style="font-size:11px;color:var(--muted);line-height:1.8">
+                Every Claude Code session on every MacBook starts with:<br><br>
+                ✓ Sprint goal & active stories<br>
+                ✓ Deliberation decisions<br>
+                ✓ Role briefs (Arch/Dev/BA/QA)<br>
+                ✓ Gate rules<br>
+                ✓ Anti-patterns<br>
+                ✓ Team rules<br><br>
+                <span style="color:var(--cyan)">Zero tokens wasted re-establishing context.</span>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="ph"><span class="pt">Quick insert</span></div>
+            <div class="pb">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <button class="btn btn-ghost" style="font-size:10px;text-align:left" onclick="insertSnippet('sprint')">+ Sprint section</button>
+                <button class="btn btn-ghost" style="font-size:10px;text-align:left" onclick="insertSnippet('decision')">+ Decision record</button>
+                <button class="btn btn-ghost" style="font-size:10px;text-align:left" onclick="insertSnippet('antipatterns')">+ Anti-patterns</button>
+                <button class="btn btn-ghost" style="font-size:10px;text-align:left" onclick="insertSnippet('roles')">+ Role briefs</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROMPT REWRITER -->
+    <div id="page-rewriter" style="display:none">
+      <div class="alert-info" style="margin-bottom:14px">
+        <span>✨</span>
+        <div>
+          <div style="font-weight:700;margin-bottom:2px">Prompt Rewriter — live demo</div>
+          <div>This is what happens automatically before every Claude Code prompt. Type a weak prompt → see it improved using your CLAUDE.md context. On Claude Max, this runs locally using your API key.</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div class="frow">
+            <label class="flabel">Your rough prompt</label>
+            <textarea id="rw-input" rows="4" placeholder="Fix the bug in auth and clean up the code while you're there" style="resize:none"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn btn-primary" onclick="runRewrite()" style="flex:1">✨ Rewrite with DevGuard</button>
+            <select id="rw-mode" style="max-width:160px">
+              <option value="gateway">Via Gateway (API mode)</option>
+              <option value="local">Local (Max mode)</option>
+            </select>
+          </div>
+
+          <div id="rw-examples" style="margin-top:14px">
+            <div class="flabel">Try these examples</div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <button class="btn btn-ghost" style="text-align:left;font-size:10px" onclick="setExample('Fix the null pointer and clean up auth while you are at it')">❌ Fix + cleanup (scope creep)</button>
+              <button class="btn btn-ghost" style="text-align:left;font-size:10px" onclick="setExample('Skip deliberation, its a simple login feature')">❌ Skip deliberation</button>
+              <button class="btn btn-ghost" style="text-align:left;font-size:10px" onclick="setExample('add export button')">⚠ Vague feature request</button>
+              <button class="btn btn-ghost" style="text-align:left;font-size:10px" onclick="setExample('something is broken in user service')">⚠ Vague bug report</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="rw-result">
+          <div style="font-size:11px;color:var(--muted);text-align:center;padding:40px 20px">
+            ← Type a prompt and click Rewrite
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY -->
+    <div id="page-activity" style="display:none">
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input id="act-search" placeholder="Search..." style="max-width:240px" oninput="renderActivity()">
+        <select id="act-filter" onchange="renderActivity()" style="width:150px">
+          <option value="">All devices</option>
+        </select>
+        <select id="act-verdict" onchange="renderActivity()" style="width:150px">
+          <option value="">All verdicts</option>
+          <option>PASS</option><option>WARN</option><option>BLOCK</option><option>REWRITTEN</option>
+        </select>
+      </div>
+      <div class="panel">
+        <div class="ph"><span class="pt">Prompt history</span><span id="act-count" style="font-size:11px;color:var(--muted)"></span></div>
+        <table>
+          <thead><tr><th>Device</th><th>Prompt (preview)</th><th>DevGuard</th><th>Tokens</th><th>Cost</th><th>Time</th></tr></thead>
+          <tbody id="act-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SETUP -->
+    <div id="page-setup" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div class="panel" style="margin-bottom:14px">
+            <div class="ph"><span class="pt">Install on a new MacBook</span></div>
+            <div class="pb">
+              <div class="steps">
+                <div class="step">
+                  <div class="step-num">1</div>
+                  <div class="step-body">
+                    <div class="step-title">Get your device token</div>
+                    <div class="step-desc">Go to My MacBooks tab → Add a MacBook → copy the generated token.</div>
+                  </div>
+                </div>
+                <div class="step">
+                  <div class="step-num">2</div>
+                  <div class="step-body">
+                    <div class="step-title">Run the installer</div>
+                    <div class="step-desc">On the new MacBook, open Terminal and run:</div>
+                    <div class="copy-line">
+                      <span id="install-cmd">curl -fsSL https://YOUR_ORG.github.io/promptshield/install.sh | bash</span>
+                      <button class="copy-btn" onclick="cp(G('install-cmd').textContent)">Copy</button>
+                    </div>
+                    <div class="step-desc" style="margin-top:6px">Takes ~60 seconds. Installs CLI + Cursor rules + Claude Code hooks + CLAUDE.md sync.</div>
+                  </div>
+                </div>
+                <div class="step">
+                  <div class="step-num">3</div>
+                  <div class="step-body">
+                    <div class="step-title">Paste your token when prompted</div>
+                    <div class="step-desc">The installer asks for your PromptShield token. Paste the one from Step 1.</div>
+                  </div>
+                </div>
+                <div class="step">
+                  <div class="step-num">4</div>
+                  <div class="step-body">
+                    <div class="step-title">Done — all features active</div>
+                    <div class="step-desc">DevGuard validates every prompt. CLAUDE.md syncs automatically. Usage tracked on this dashboard.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel" style="margin-bottom:14px">
+            <div class="ph"><span class="pt">Claude Max mode (no gateway)</span></div>
+            <div class="pb">
+              <div class="alert-warn" style="margin-bottom:12px">
+                <span>⚠</span><span>Claude Max mode runs DevGuard locally — no tokens sent through the gateway. Requires <code>ANTHROPIC_API_KEY</code> set in your environment for prompt rewriting.</span>
+              </div>
+              <div class="steps">
+                <div class="step">
+                  <div class="step-num">1</div>
+                  <div class="step-body">
+                    <div class="step-title">Install normally</div>
+                    <div class="step-desc">Run the installer above. When asked for mode, select <code>--mode max</code>.</div>
+                    <div class="copy-line">
+                      <span>curl -fsSL .../install.sh | bash -s -- --mode max</span>
+                      <button class="copy-btn" onclick="cp('curl -fsSL https://YOUR_ORG.github.io/promptshield/install.sh | bash -s -- --mode max')">Copy</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="step">
+                  <div class="step-num">2</div>
+                  <div class="step-body">
+                    <div class="step-title">Add API key to environment</div>
+                    <div class="step-desc">The rewriter calls Haiku directly for prompt improvement:</div>
+                    <div class="copy-line">
+                      <span>echo 'export ANTHROPIC_API_KEY=sk-ant-...' >> ~/.zshrc</span>
+                      <button class="copy-btn" onclick="cp(\"echo 'export ANTHROPIC_API_KEY=sk-ant-...' >> ~/.zshrc\")">Copy</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="step">
+                  <div class="step-num">3</div>
+                  <div class="step-body">
+                    <div class="step-title">Sync CLAUDE.md manually</div>
+                    <div class="copy-line">
+                      <span>~/.devguard/bin/claude-md-sync.js</span>
+                      <button class="copy-btn" onclick="cp('node ~/.devguard/bin/claude-md-sync.js')">Copy</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="ph"><span class="pt">Verify installation</span></div>
+            <div class="pb">
+              <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Run these on the MacBook to confirm everything works:</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div class="copy-line"><span>team-claude status</span><button class="copy-btn" onclick="cp('team-claude status')">Copy</button></div>
+                <div class="copy-line"><span>cat ~/.devguard/CLAUDE.md | head -5</span><button class="copy-btn" onclick="cp('cat ~/.devguard/CLAUDE.md | head -5')">Copy</button></div>
+                <div class="copy-line"><span>node ~/.devguard/bin/pre-tool-hook.js <<< '{"prompt":"test"}'</span><button class="copy-btn" onclick="cp(\"echo '{\\\"prompt\\\":\\\"test\\\"}' | node ~/.devguard/bin/pre-tool-hook.js\")">Copy</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<div id="tst" class="toast" style="display:none"></div>
+
+<script>
+const G = id => document.getElementById(id);
+const fmt = n => n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'k':String(n||0);
+const cp = t => { navigator.clipboard?.writeText(t); toast('Copied'); };
+const ts = iso => { if(!iso) return 'never'; const d=(Date.now()-new Date(iso).getTime())/60000; return d<1?'just now':d<60?`${Math.round(d)}m ago`:d<1440?`${Math.round(d/60)}h ago`:`${Math.round(d/1440)}d ago`; };
+
+let CFG = {
+  gw:  localStorage.getItem('ps_gw')  || 'http://localhost:8000',
+  ak:  localStorage.getItem('ps_ak')  || '',
+  tok: localStorage.getItem('ps_b_tok') || '',  // Mode B personal token
+};
+let D = { devices:[], events:[], claudeMd: '' };
+
+function toast(msg, type='ok') {
+  const el=G('tst');
+  el.innerHTML=`<span style="color:${type==='ok'?'#10B981':type==='err'?'#EF4444':'#F59E0B'}">${type==='ok'?'✓':type==='err'?'✕':'⚠'}</span> ${msg}`;
+  el.style.display='flex'; setTimeout(()=>el.style.display='none',3000);
+}
+
+const PAGES = {
+  overview:  ['My Overview','Personal usage across all MacBooks'],
+  devices:   ['My MacBooks','Per-device tokens, usage, and revocation'],
+  'claude-md':['CLAUDE.md Editor','Shared context — syncs to all devices on save'],
+  rewriter:  ['Prompt Rewriter','Test DevGuard improvement before using Claude Code'],
+  activity:  ['My Activity','Full prompt history across all devices'],
+  setup:     ['Setup MacBook','Install PromptShield on a new device'],
+};
+
+function go(p, el) {
+  document.querySelectorAll('[id^=page-]').forEach(e=>e.style.display='none');
+  document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
+  G('page-'+p).style.display='';
+  if(el) el.classList.add('active');
+  const [title,sub]=PAGES[p]||[p,''];
+  G('pg-title').textContent=title; G('pg-sub').textContent=sub;
+  if(p==='claude-md') loadCLAUDEmd();
+}
+
+async function api(method, path, body, tokenOverride) {
+  const token = tokenOverride || CFG.tok || CFG.ak;
+  const r = await fetch(CFG.gw + path, {
+    method,
+    headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// ── Load data ─────────────────────────────────────────────────────────────────
+async function load() {
+  G('gw-lbl').textContent = 'Connecting...';
+  try {
+    // Try to load personal usage data
+    const summary = await api('GET', '/api/v1/usage/me');
+    D.summary = summary;
+
+    // Load recent events
+    try {
+      const events = await api('GET', '/api/v1/usage/my-events');
+      D.events = events.events || [];
+    } catch { D.events = []; }
+
+    // Load Claude.md
+    try {
+      const md = await api('GET', '/api/v1/claude-md');
+      D.claudeMd = md.content || '';
+    } catch {}
+
+    G('gw-dot').className='dot g';
+    G('gw-lbl').textContent='Connected';
+    G('gw-url').textContent=CFG.gw.replace(/https?:\/\//,'');
+    G('user-name').textContent=summary.name || 'Connected';
+    render();
+  } catch(e) {
+    G('gw-dot').className='dot r';
+    G('gw-lbl').textContent='Offline';
+    // Load mock data for demo
+    loadMockData();
+    render();
+  }
+}
+
+function loadMockData() {
+  D.summary = { tokensToday:284000, tokensSaved:42000, rewrittenToday:8, devicesActive:3, passed:31, warned:6, blocked:8, totalPrompts:45 };
+  D.devices = [
+    { id:'mb1', name:'MacBook Pro 16 — Studio', mode:'api', lastSeen: new Date(Date.now()-120000).toISOString(), tokensToday:184000, dailyLimit:500000, status:'active' },
+    { id:'mb2', name:'MacBook Air M3 — Travel', mode:'max', lastSeen: new Date(Date.now()-3600000*2).toISOString(), tokensToday:72000, dailyLimit:500000, status:'active' },
+    { id:'mb3', name:'MacBook Pro 14 — Client work', mode:'api', lastSeen: new Date(Date.now()-3600000*18).toISOString(), tokensToday:28000, dailyLimit:300000, status:'active' },
+  ];
+  D.events = [
+    { device:'MacBook Pro 16', prompt:'/bugfix "Overtime returns negative"', verdict:'PASS', tokens:2400, cost:0.008, ts:new Date(Date.now()-300000).toISOString() },
+    { device:'MacBook Air M3', prompt:'fix the bug and clean up while you are there', verdict:'BLOCK', tokens:0, cost:0, ts:new Date(Date.now()-900000).toISOString(), rewritten:'/bugfix "Auth null pointer on getById(0)" — Location: user-service.js' },
+    { device:'MacBook Pro 16', prompt:'add export button', verdict:'REWRITTEN', tokens:1800, cost:0.006, ts:new Date(Date.now()-1800000).toISOString(), rewritten:'/enhance "Add CSV export button to usage dashboard with date range filter"' },
+    { device:'MacBook Pro 14', prompt:'/implement specs/auth/stories/001-login.md', verdict:'PASS', tokens:4200, cost:0.018, ts:new Date(Date.now()-3600000).toISOString() },
+    { device:'MacBook Air M3', prompt:'skip deliberation its a simple feature', verdict:'BLOCK', tokens:0, cost:0, ts:new Date(Date.now()-7200000).toISOString(), rewritten:'/kickoff "Add simple feature with deliberation — required even for small features"' },
+  ];
+  D.claudeMd = `# CLAUDE.md — PromptShield\n> Read on every session start.\n\n## Current sprint\nGoal: Wire deliberation engine to all commands\n\n## Active decisions\n- .deliberation/shift-swap/decision.md: Use extractable is_qualified() function\n\n## Anti-patterns\n1. Skip deliberation\n2. Skip Gate 1 or Gate 2\n3. Refactor during /bugfix`;
+}
+
+// ── Render ──────────────────────────────────────────────────────────────────
+function render() {
+  renderStats();
+  renderOvDevices();
+  renderOvLog();
+  renderDGBreakdown();
+  renderCLAUDEmdStatus();
+  renderDevices();
+  renderActivity();
+}
+
+function renderStats() {
+  const s = D.summary || {};
+  const devs = D.devices || [];
+  G('s0').textContent = devs.filter(d=>d.status==='active').length || s.devicesActive || '—';
+  G('s1').textContent = fmt(s.tokensToday || 0);
+  G('s1s').textContent = `${s.requestsToday || D.events?.length || 0} requests`;
+  G('s2').textContent = s.rewrittenToday || D.events?.filter(e=>e.verdict==='REWRITTEN'||e.verdict==='BLOCK').length || '—';
+  G('s3').textContent = fmt(s.tokensSaved || 0);
+}
+
+function renderOvDevices() {
+  const devs = D.devices || [];
+  G('ov-devices').innerHTML = devs.length ? devs.map(d => {
+    const p = Math.min(100, Math.round((d.tokensToday||0)/(d.dailyLimit||500000)*100));
+    const bc = p>80?'#EF4444':p>60?'#F59E0B':'#10B981';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 18px;border-bottom:1px solid var(--border)">
+      <span style="font-size:18px">${d.mode==='max'?'💻':'🖥️'}</span>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600">${d.name}</div>
+        <div style="font-size:10px;color:var(--muted)">${d.mode==='max'?'Claude Max mode':'API mode'} · ${ts(d.lastSeen)}</div>
+      </div>
+      <div style="min-width:100px">
+        <div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${bc}"></div></div><span style="font-size:10px;color:var(--muted)">${fmt(d.tokensToday||0)}</span></div>
+      </div>
+    </div>`;
+  }).join('') : '<div style="padding:20px 18px;color:var(--muted);font-size:12px">No devices yet — add one in My MacBooks</div>';
+}
+
+function renderOvLog() {
+  const evs = (D.events || []).slice(0,8);
+  const vc = { PASS:{c:'#10B981',l:'✓ PASS'}, WARN:{c:'#F59E0B',l:'⚠ WARN'}, BLOCK:{c:'#EF4444',l:'✕ BLOCK'}, REWRITTEN:{c:'#06B6D4',l:'✨ REWRITE'} };
+  G('ov-log').innerHTML = evs.length ? evs.map(e => {
+    const v = vc[e.verdict||'PASS'] || vc.PASS;
+    return `<div class="log-row">
+      <span style="min-width:100px;color:var(--muted);font-size:10px">${e.device||'—'}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${(e.prompt||'').slice(0,50)}${e.prompt?.length>50?'...':''}</span>
+      <span style="background:${v.c}20;color:${v.c};padding:1px 7px;border-radius:3px;font-size:10px;font-weight:700;flex-shrink:0">${v.l}</span>
+    </div>`;
+  }).join('') : '<div style="padding:12px 0;color:var(--muted);text-align:center;font-size:12px">No activity yet</div>';
+}
+
+function renderDGBreakdown() {
+  const evs = D.events || [];
+  const s = D.summary || {};
+  const pass = s.passed || evs.filter(e=>e.verdict==='PASS').length;
+  const warn = s.warned || evs.filter(e=>e.verdict==='WARN').length;
+  const block = s.blocked || evs.filter(e=>e.verdict==='BLOCK').length;
+  const rewritten = evs.filter(e=>e.verdict==='REWRITTEN').length;
+  const total = pass+warn+block+rewritten || 1;
+  G('dg-breakdown').innerHTML = [
+    ['✓ Passed', pass, '#10B981'],
+    ['✨ Rewritten', rewritten, '#06B6D4'],
+    ['⚠ Warned', warn, '#F59E0B'],
+    ['✕ Blocked', block, '#EF4444'],
+  ].map(([l,v,c]) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:11px;color:${c}">${l}</span>
+      <div style="display:flex;align-items:center;gap:8px;flex:1;margin-left:12px">
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v/total*100)}%;background:${c}"></div></div>
+        <span style="font-size:11px;color:var(--muted);min-width:20px">${v}</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderCLAUDEmdStatus() {
+  const md = D.claudeMd || '';
+  const lines = md.split('\n').length;
+  const devices = D.devices || [];
+  G('claude-md-status').innerHTML = md ? `
+    <div style="font-size:12px;color:var(--green);margin-bottom:8px">✓ CLAUDE.md loaded (${lines} lines)</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${(md.slice(0,120))}...</div>
+    <div style="font-size:10px;color:var(--muted)">Synced to ${devices.length} device${devices.length!==1?'s':''}</div>
+  ` : `<div style="font-size:12px;color:var(--orange)">⚠ No CLAUDE.md — Claude starts cold every session</div>`;
+}
+
+function renderDevices() {
+  const devs = D.devices || [];
+  G('devices-list').innerHTML = devs.length ? devs.map(d => {
+    const p = Math.min(100, Math.round((d.tokensToday||0)/(d.dailyLimit||500000)*100));
+    const bc = p>80?'#EF4444':p>60?'#F59E0B':'#10B981';
+    const isActive = d.status==='active';
+    return `<div class="device-card">
+      <div class="device-icon">${d.mode==='max'?'💻':'🖥️'}</div>
+      <div class="device-info">
+        <div class="device-name">${d.name}</div>
+        <div class="device-meta">${d.mode==='max'?'Claude Max — local validation':'API mode — gateway tracked'} · Last seen ${ts(d.lastSeen)}</div>
+        <div class="device-stats">
+          <div class="device-stat">${fmt(d.tokensToday||0)} <span>tokens today</span></div>
+          <div class="device-stat" style="margin-left:16px">
+            <div class="bar-wrap"><div class="bar-track" style="min-width:80px"><div class="bar-fill" style="width:${p}%;background:${bc}"></div></div><span style="color:var(--muted)">${p}%</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="device-actions">
+        <span class="badge ${isActive?'bg':'br'}">${isActive?'Active':'Inactive'}</span>
+        <button class="btn btn-ghost" onclick="revokeDevice('${d.id}')">Revoke</button>
+      </div>
+    </div>`;
+  }).join('') : '<div style="color:var(--muted);font-size:12px;padding:8px 0">No devices yet</div>';
+
+  // populate filter
+  const sel = G('act-filter');
+  if(sel) {
+    const opts = ['<option value="">All devices</option>', ...devs.map(d=>`<option value="${d.name}">${d.name}</option>`)].join('');
+    sel.innerHTML = opts;
+  }
+}
+
+function renderActivity() {
+  const q = (G('act-search')?.value||'').toLowerCase();
+  const vf = G('act-verdict')?.value||'';
+  const df = G('act-filter')?.value||'';
+  let evs = D.events || [];
+  if(q) evs = evs.filter(e=>(e.prompt+' '+e.device).toLowerCase().includes(q));
+  if(vf) evs = evs.filter(e=>(e.verdict||'PASS')===vf);
+  if(df) evs = evs.filter(e=>e.device===df);
+  G('act-count').textContent = `${evs.length} events`;
+  const vc = { PASS:{c:'#10B981',l:'✓ PASS'}, WARN:{c:'#F59E0B',l:'⚠ WARN'}, BLOCK:{c:'#EF4444',l:'✕ BLOCK'}, REWRITTEN:{c:'#06B6D4',l:'✨ REWRITE'} };
+  G('act-table').innerHTML = evs.slice(0,50).map(e => {
+    const v = vc[e.verdict||'PASS'] || vc.PASS;
+    return `<tr>
+      <td style="color:var(--muted);font-size:11px;white-space:nowrap">${e.device||'—'}</td>
+      <td>
+        <div style="font-size:11px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.prompt||''}</div>
+        ${e.rewritten?`<div style="font-size:10px;color:var(--cyan);margin-top:2px">→ ${e.rewritten.slice(0,60)}${e.rewritten.length>60?'...':''}</div>`:''}
+      </td>
+      <td><span style="background:${v.c}20;color:${v.c};padding:1px 7px;border-radius:3px;font-size:10px;font-weight:700">${v.l}</span></td>
+      <td style="color:var(--muted)">${fmt(e.tokens||0)}</td>
+      <td style="color:var(--green)">$${(e.cost||0).toFixed(3)}</td>
+      <td style="color:var(--muted);font-size:11px">${e.ts?new Date(e.ts).toLocaleTimeString():''}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No events</td></tr>';
+}
+
+// ── CLAUDE.md editor ─────────────────────────────────────────────────────────
+const SNIPPETS = {
+  sprint: '\n## Current sprint\nGoal: <sprint goal>\n\nActive stories:\n- specs/<feature>/stories/001-<name>.md\n',
+  decision: '\n## Active decisions\n- .deliberation/<slug>/decision.md: <decision one-liner>\n',
+  antipatterns: '\n## Anti-patterns (all blocked)\n1. Skip deliberation\n2. Skip Gate 1 or Gate 2\n3. Refactor during /bugfix\n4. Self-merge PRs\n5. Modify reproduction tests to pass\n',
+  roles: '\n## Roles\n- Architect: long-term structure\n- Developer: simplest thing that works\n- BA: user problem solved?\n- QA: adversarial — what breaks?\n\nForbidden: "Sounds good" "I agree" "Fair point" "No objection"\n',
+};
+
+async function loadCLAUDEmd() {
+  if(D.claudeMd) {
+    G('claude-md-editor').value = D.claudeMd;
+    updateMdLength();
+    return;
+  }
+  try {
+    const r = await api('GET', '/api/v1/claude-md');
+    if(r.content) {
+      G('claude-md-editor').value = r.content;
+      D.claudeMd = r.content;
+      updateMdLength();
+    }
+  } catch {}
+}
+
+function updateMdLength() {
+  const v = G('claude-md-editor').value;
+  G('md-length').textContent = `${v.length} chars · ~${Math.round(v.length/4)} tokens`;
+}
+
+function insertSnippet(type) {
+  const ta = G('claude-md-editor');
+  ta.value += SNIPPETS[type] || '';
+  updateMdLength();
+  ta.focus();
+  ta.scrollTop = ta.scrollHeight;
+}
+
+async function saveCLAUDEmd() {
+  const content = G('claude-md-editor').value;
+  if(!content.trim()) { toast('Cannot save empty CLAUDE.md', 'err'); return; }
+  try {
+    await api('POST', '/api/v1/admin/claude-md', { content }, CFG.ak);
+    D.claudeMd = content;
+    toast('CLAUDE.md saved and synced to all devices ✓');
+    G('md-sync-status').innerHTML = `
+      <div style="font-size:12px;color:var(--green);margin-bottom:6px">✓ Synced ${new Date().toLocaleTimeString()}</div>
+      <div style="font-size:11px;color:var(--muted)">All devices will use this on next session start</div>`;
+    renderCLAUDEmdStatus();
+  } catch(e) {
+    // Save locally if gateway not available
+    D.claudeMd = content;
+    toast('Saved locally — will sync when gateway is available', 'warn');
+  }
+}
+
+// ── Prompt rewriter ───────────────────────────────────────────────────────────
+function setExample(text) { G('rw-input').value = text; }
+
+async function runRewrite() {
+  const prompt = G('rw-input').value.trim();
+  if(!prompt) { toast('Enter a prompt first', 'err'); return; }
+
+  G('rw-result').innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">✨ Rewriting with DevGuard...</div>';
+
+  const mode = G('rw-mode').value;
+  let result = null;
+
+  // Check for hard blocks first
+  const BLOCKS = [
+    { re: /while\s+you'?re\s+(there|at it)/i, rule:'L1-007', msg:"Scope creep — 'while you're there'" },
+    { re: /skip\s+(the\s+)?(deliberation|gate)/i, rule:'L2-K002', msg:'Gate bypass — not allowed' },
+    { re: /fix\s+all\s+the\s+issues|and\s+anything\s+else/i, rule:'L1-007', msg:'Unbounded scope' },
+  ];
+  const blocked = BLOCKS.find(b => b.re.test(prompt));
+
+  try {
+    if(mode === 'gateway' && CFG.tok) {
+      result = await api('POST', '/api/v1/devguard/rewrite', { prompt, claudeMd: D.claudeMd });
+    } else {
+      // Simulate locally for demo
+      result = await simulateRewrite(prompt, blocked);
+    }
+  } catch {
+    result = await simulateRewrite(prompt, blocked);
+  }
+
+  if(!result) { G('rw-result').innerHTML = '<div style="text-align:center;padding:30px;color:var(--red)">Could not rewrite — check gateway connection</div>'; return; }
+
+  G('rw-result').innerHTML = `
+    ${blocked ? `<div style="background:#EF444415;border:1px solid #EF444430;border-radius:8px;padding:10px 14px;margin-bottom:10px;font-size:12px;color:var(--red)">
+      <div style="font-weight:700;margin-bottom:3px">✕ DevGuard BLOCK [${blocked.rule}]</div>
+      <div>${blocked.msg}</div>
+    </div>` : ''}
+    <div class="rewrite-box">
+      <div class="rewrite-label">Your prompt</div>
+      <div class="rewrite-text" style="color:${blocked?'var(--red)':'var(--muted)'}">${prompt}</div>
+    </div>
+    <div class="arrow-down">↓</div>
+    <div class="rewrite-improved">
+      <div class="rewrite-label" style="color:var(--cyan)">✨ Improved prompt</div>
+      <div class="rewrite-text">${result.rewritten || prompt}</div>
+    </div>
+    ${result.changes ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;padding:6px 10px;background:var(--panel);border-radius:6px">💡 ${result.changes}</div>` : ''}
+    ${result.token_saving ? `<div style="font-size:11px;color:var(--green);margin-top:4px">~${result.token_saving} tokens saved</div>` : ''}
+    <button class="btn btn-ghost" style="width:100%;margin-top:10px;font-size:11px" onclick="G('rw-input').value='${(result.rewritten||'').replace(/'/g,"\\'")}';toast('Prompt copied to input')">Use this prompt →</button>
+  `;
+}
+
+async function simulateRewrite(prompt, blocked) {
+  await new Promise(r => setTimeout(r, 600));
+  if(blocked) {
+    if(/while\s+you'?re/i.test(prompt)) return { rewritten: prompt.replace(/and\s+clean.*$|while\s+you'?re.*$/gi,'').trim() + '\n\n(Cleanup moved to separate /enhance story)', changes: 'Removed scope creep — cleanup needs its own /enhance story', token_saving: '~80' };
+    if(/skip.*deliberation/i.test(prompt)) return { rewritten: prompt.replace(/skip.*deliberation.*,?\s*/gi,'').replace(/its a simple/gi,'with') + '\n\nNote: deliberation is mandatory even for simple features', changes: 'Removed gate bypass — deliberation always required', token_saving: '~60' };
+    if(/fix all|anything else/i.test(prompt)) return { rewritten: prompt.replace(/fix all.*|and anything.*/gi,'').trim(), changes: 'Removed unbounded scope — one action per prompt', token_saving: '~100' };
+  }
+  if(prompt.length < 30) return { rewritten: `/kickoff "${prompt} with observable acceptance criteria and deliberation"`, changes: 'Added required /kickoff structure and criteria', token_saving: '~200' };
+  return { rewritten: prompt, changes: 'Prompt looks good — no changes needed', token_saving: '0' };
+}
+
+// ── Device management ─────────────────────────────────────────────────────────
+async function addDevice() {
+  const name = G('new-device-name').value.trim();
+  const mode = G('new-device-mode').value;
+  if(!name) { toast('Device name required', 'err'); return; }
+  try {
+    const res = await api('POST', '/api/v1/developers/create', { name, team: 'Personal', role: 'developer', mode }, CFG.ak);
+    const token = res.token;
+    G('new-device-result').innerHTML = `
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Device added. Install command for this MacBook:</div>
+      <div style="background:var(--bg);border:1px solid var(--border2);border-radius:7px;padding:10px 12px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:11px;color:var(--cyan);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">curl -fsSL ${CFG.gw.replace(':8000','')}/install.sh | bash -s -- --token ${token} --name "${name}"${mode==='max'?' --mode max':''}</span>
+        <button class="copy-btn" onclick="cp('curl -fsSL ${CFG.gw.replace(':8000','')}/install.sh | bash -s -- --token ${token} --name \\'${name}\\''${mode==='max'?' --mode max':''})">Copy</button>
+      </div>`;
+    D.devices.push({ id: res.id, name, mode, status:'active', tokensToday:0, dailyLimit:500000, lastSeen:null });
+    renderDevices();
+    toast(`${name} added`);
+  } catch(e) {
+    toast('Failed: '+e.message, 'err');
+  }
+}
+
+async function revokeDevice(id) {
+  if(!confirm('Revoke this device? It will get 401 on next request.')) return;
+  try {
+    await api('PATCH', `/api/v1/developers/${id}`, { status:'inactive' }, CFG.ak);
+    D.devices = D.devices.map(d => d.id===id ? {...d,status:'inactive'} : d);
+    renderDevices();
+    toast('Device revoked');
+  } catch(e) { toast('Failed: '+e.message,'err'); }
+}
+
+// ── Pre-generate Device IDs ─────────────────────────────────────────────────
+async function pregenIds() {
+  const count = parseInt(G('pregen-count').value) || 4;
+  const label = G('pregen-label').value.trim() || 'Device';
+  try {
+    const res = await api('POST', '/api/v1/developers/pregen-device-ids',
+      { count, label }, CFG.ak);
+    const ids = res.device_ids || [];
+    G('pregen-result').innerHTML = `
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
+        ${ids.length} Device IDs generated. Assign one per device.
+      </div>
+      ${ids.map((d,i) => `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:10px;color:var(--muted);min-width:20px">${i+1}.</span>
+          <div style="flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:7px 12px;display:flex;align-items:center;gap:8px">
+            <span style="color:var(--cyan);font-size:12px;flex:1">${d.token}</span>
+            <button class="copy-btn" onclick="cp('${d.token}');toast('Copied')">Copy</button>
+          </div>
+        </div>
+      `).join('')}
+      <div style="margin-top:10px;font-size:11px;color:var(--muted)">
+        Install command for each device:<br>
+        <code style="color:var(--cyan)">curl -fsSL .../install.sh | bash -s -- --device-id DID-XXXX-XXXX-XXXX</code>
+      </div>`;
+    D.devices = [...(D.devices||[]), ...ids.map(d=>({id:d.id,name:`Unregistered (${label})`,token:d.token,status:'pending',tokensToday:0,dailyLimit:500000}))];
+    renderDevices();
+    toast(`${ids.length} Device IDs generated`);
+  } catch(e) {
+    // Demo mode — generate fake IDs for display
+    const mockIds = Array.from({length:count}, (_,i) => ({
+      token: `DID-${Math.random().toString(16).slice(2,6).toUpperCase()}-${Math.random().toString(16).slice(2,6).toUpperCase()}-${Math.random().toString(16).slice(2,6).toUpperCase()}`
+    }));
+    G('pregen-result').innerHTML = `
+      <div style="font-size:11px;color:var(--orange);margin-bottom:8px">⚠ Gateway offline — showing demo IDs (not saved)</div>
+      ${mockIds.map((d,i) => `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-size:10px;color:var(--muted);min-width:20px">${i+1}.</span>
+          <div style="flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:7px 12px;display:flex;align-items:center;gap:8px">
+            <span style="color:var(--dim);font-size:12px;flex:1">${d.token} (demo)</span>
+            <button class="copy-btn" onclick="cp('${d.token}')">Copy</button>
+          </div>
+        </div>
+      `).join('')}`;
+  }
+}
+
+// ── Settings check ────────────────────────────────────────────────────────────
+if(!CFG.ak && !CFG.tok) {
+  setTimeout(() => toast('Open Team Admin → Settings to configure gateway connection','info'), 600);
+}
+
+load();
+setInterval(load, 60000);
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Node
+node_modules/
+npm-debug.log
+.npm
+
+# Secrets
+.env
+.env.local
+*.pem
+*.key
+secrets/
+
+# Data
+*.sqlite
+*.db
+queue.jsonl
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Build
+github-pages/data/usage.json
+
+# PromptShield — project-level files, never commit
+.promptshield/

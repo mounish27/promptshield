@@ -1,0 +1,102 @@
+---
+description: Process a Business Requirements Document into a full spec bundle with deliberation. Use when: you have a BRD file or pasted requirements. Produces brief, PRD, architecture, stories, wireframes, risk log — all traceable to BRD requirements.
+globs:
+alwaysApply: false
+---
+
+# ITM BRD — Requirements to Spec Bundle
+
+You are processing a BRD for ITM. Input: **$ARGUMENTS**
+
+The argument is a file path (`docs/hotel-workforce-brd.md`) or pasted BRD text.
+
+## Step 0 — parse and validate the BRD
+
+Read the BRD and look for these standard sections:
+- Objectives / Goals · Scope · Functional Requirements · Non-Functional Requirements
+- Constraints · Assumptions · Glossary · Stakeholders · Acceptance Criteria · Out of Scope
+
+For each section found: extract it.
+For each section missing: flag it explicitly — the human should fill these gaps.
+
+Extract individual requirements from Functional Requirements and Acceptance Criteria. Assign tracking IDs: REQ-001, REQ-002, ...
+
+Save parsed BRD to `specs/<feature-slug>/brd-source.md` for audit trail.
+
+## Step 1 — run deliberation on the BRD (mandatory)
+
+Before writing any spec:
+
+```bash
+node deliberation/cli.js \
+  --proposal "Implement: <BRD title or first objective>" \
+  --criteria "All REQ-xxx requirements addressable,Testable,Maintainable,Within constraints" \
+  --slug "<feature-slug>"
+```
+
+The deliberation surfaces:
+- Which requirements are ambiguous and need clarification
+- Architectural approach for the feature set
+- Risk areas the team disagrees on
+- What to build first (story priority)
+
+## Step 2 — produce the spec bundle
+
+Read `.deliberation/<slug>/decision.md` first. Every artifact must trace to BRD requirements.
+
+### `specs/<slug>/brief.md`
+- One-page summary, link to BRD source, deliberation reference, key decisions, scope boundaries
+
+### `specs/<slug>/prd.md`
+- Requirements traceability: every functional requirement maps to a BRD REQ-xxx ID
+- NFRs with measurable thresholds (latency, uptime, coverage)
+- Each section ends with: `Confidence: HIGH | MEDIUM | LOW`
+
+### `specs/<slug>/architecture.md`
+- Component diagram, data model sketch, integration points, ADR candidates
+
+### `specs/<slug>/stories/*.md`
+- One story per vertical slice
+- Each story header: `Traces to: REQ-001, REQ-003`
+- Acceptance criteria: Given/When/Then format only
+- Layers affected listed explicitly
+
+### `specs/<slug>/risk-log.md`
+- Risks from deliberation DISSENT section
+- Ambiguous requirements flagged during BRD parse
+
+## Step 3 — requirements coverage report
+
+Produce `specs/<slug>/requirements-coverage.md`:
+
+```markdown
+## Requirements coverage
+
+| REQ ID | Requirement | Story | Status |
+|--------|-------------|-------|--------|
+| REQ-001 | <text> | stories/001-xxx.md | Covered |
+| REQ-002 | <text> | — | NOT COVERED — requires human decision |
+
+### Summary
+- Total requirements: <n>
+- Covered: <n> (<percentage>%)
+- Not covered: <n> — REQUIRES HUMAN DECISION
+- Deferred: <n>
+```
+
+**Every requirement must be explicitly accounted for.** Nothing gets silently dropped.
+
+## Step 4 — open Gate 1 PR
+
+Run verifier first. Then open PR tagged `needs-feature-approval`.
+
+PR description must include BRD coverage summary and list any BRD sections that were missing.
+
+## Hard stops — DevGuard blocks if:
+
+- ❌ Skipping deliberation for "simple" BRDs
+- ❌ Silently dropping requirements that don't fit the architecture
+- ❌ Marking requirements as covered without a corresponding story
+- ❌ Stories without REQ-xxx traceability
+- ❌ Acceptance criteria without Given/When/Then format
+- ❌ Missing confidence markers on PRD sections

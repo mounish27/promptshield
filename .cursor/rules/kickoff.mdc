@@ -1,0 +1,116 @@
+---
+description: Start a new feature with 4-role deliberation. Runs Architect, Developer, BA, QA debate first — before any code or spec is written. Use when: starting any new feature, no matter how small.
+globs:
+alwaysApply: false
+---
+
+# ITM Kickoff — New Feature with Deliberation
+
+You are kicking off a new feature for the ITM Agentic SDLC. The user has provided: **$ARGUMENTS**
+
+## Non-negotiable: deliberation runs FIRST
+
+Before any persona writes anything, run the 4-role deliberation. This is not optional even for simple features.
+
+Generate a slug from the feature description (lowercase, hyphens, max 60 chars), then run:
+
+```bash
+cd deliberation && node cli.js \
+  --proposal "$ARGUMENTS" \
+  --criteria "Testable,Maintainable,Secure,Under budget,User value proven" \
+  --slug "<slug>"
+```
+
+If `ANTHROPIC_API_KEY` is not set, stop and tell the user:
+> Set your API key first: `export ANTHROPIC_API_KEY=sk-ant-...`
+
+If deliberation returns exit code 1, read `.deliberation/<slug>/decision.md` for the partial result. Report exactly which verifier checks failed — do not silently proceed.
+
+If deliberation passes, report:
+> "The team debated your feature. Decision: <DECISION line from decision.md>"
+> Then show: alternatives rejected, any dissent, what the spec will be built on.
+
+## DevGuard L1 check — before you proceed
+
+Check the feature description against these rules. BLOCK and ask for clarification if any fail:
+- Description must be ≥5 words
+- Must not contain: "and also", "while you're there", "fix everything", "skip deliberation"
+- Must have a verifiable outcome (something that can be checked pass/fail)
+- Single feature only — not multiple features combined
+
+## Step 1 — Search memory for prior art
+
+```bash
+# If memory MCP is running
+# Search for related work, ADRs, prior rejections, lessons learned
+```
+
+Cite everything relevant. Do not re-invent decisions already made.
+
+## Step 2 — spec-author writes the spec bundle
+
+Read `.deliberation/<slug>/decision.md` first. Every artifact must align with the deliberation decision. If the deliberation rejected an approach, do NOT propose it in the spec.
+
+Produce under `specs/<slug>/`:
+- `brief.md` — one-page summary with deliberation reference block
+- `prd.md` — product requirements with confidence markers (HIGH/MEDIUM/LOW per section)
+- `architecture.md` — component sketch, data model, integration points
+- `stories/` — one `.md` per vertical slice, Given/When/Then acceptance criteria
+- `risk-log.md` — risks from DISSENT section of deliberation
+
+Every story must end with:
+```markdown
+## Deliberation trace
+- Decision record: .deliberation/<slug>/decision.md
+- Traces to decision: <DECISION line>
+- Rejected alternatives considered: <from ALTERNATIVES CONSIDERED>
+```
+
+## Step 3 — architect produces ADRs
+
+Hand off to architect persona with the deliberation decision record injected. Architect produces:
+- ADRs for non-trivial decisions (must reference deliberation record)
+- `test-strategy.md`
+
+No ADR may contradict a deliberation decision without explicitly reopening the question.
+
+## Step 4 — ux-designer produces wireframes
+
+For every user-facing page: SVG wireframes for desktop + mobile, plus empty/loading/error states. Name the primary action per page explicitly.
+
+## Step 5 — run verifier
+
+```bash
+node deliberation/verifier.js .deliberation/<slug>/transcript.json \
+  --workspace . \
+  --output .deliberation/<slug>/verification.json
+```
+
+If FAIL: surface specific failing checks. Fix before opening PR. Do NOT open PR with a FAIL verification.
+
+## Step 6 — open Gate 1 PR
+
+Open PR against `specs/<slug>` branch. Tag: `needs-feature-approval`. Stop — human reviews.
+
+PR description must include:
+```markdown
+## Deliberation summary
+- Decision: <one sentence>
+- Alternatives rejected: <list with reasons>
+- Dissent: <any dissenting positions>
+- Verification: PASS (<n> checks)
+
+## Spec bundle
+- Brief, PRD, Architecture, <n> stories, <n> wireframes, <n> ADRs
+- Risk log: <n> items
+```
+
+## Hard stops — DevGuard blocks if:
+
+- ❌ Deliberation skipped for any reason
+- ❌ Spec contradicts deliberation decision without reopening
+- ❌ Acceptance criteria without observable, timed outcomes
+- ❌ Specs without confidence markers
+- ❌ Wireframes without empty/error states
+- ❌ PR opened with FAIL verification
+- ❌ Any persona worked without deliberation context injected

@@ -1,0 +1,96 @@
+---
+description: Enhance an existing feature incrementally — delta only, not a rewrite. Use when: adding to an existing feature that doesn't need a full kickoff. Produces delta-spec, backward compatibility analysis, incremental stories.
+globs:
+alwaysApply: false
+---
+
+# ITM Enhance — Incremental Change to Existing Feature
+
+You are enhancing an existing feature. Enhancement request: **$ARGUMENTS**
+
+## DevGuard L1+L2 check
+
+BLOCK if the request contains:
+- "rewrite", "rebuild", "redo from scratch" → use /kickoff instead
+- "refactor" without a specific behaviour change → needs deliberation
+- "while you're there" / "and also fix" → unbounded scope, split into separate prompts
+- Cannot locate the existing feature code → STOP and report before proceeding
+
+## Step 0 — read existing codebase FIRST
+
+Before writing anything:
+1. Grep for domain terms from the enhancement request
+2. Trace current behaviour from entry point → domain logic → persistence
+3. Read existing tests — catalog what coverage already exists
+4. Read current UI (if applicable) — identify screens and flows that will be touched
+5. Produce a written summary of what the feature does TODAY, anchored to specific files and line ranges
+
+If you cannot locate the feature, STOP:
+```
+Cannot locate feature
+Search terms used: <list>
+Files examined: <list>
+Hypothesis: <where it might be>
+Recommended next steps: <what would help>
+```
+
+## Step 1 — load deliberation context
+
+```bash
+ls .deliberation/*/decision.md 2>/dev/null
+```
+
+If deliberation exists for this feature area:
+- DECISION line — does the enhancement align or conflict?
+- ALTERNATIVES CONSIDERED — was this enhancement discussed as a future possibility?
+- DISSENT — did anyone raise extensibility concerns?
+
+Prior deliberation decisions constrain the enhancement approach. Do not contradict without explicitly reopening the question.
+
+## Step 2 — produce delta-spec
+
+Produce `specs/<feature-slug>/delta-spec.md`:
+
+```markdown
+## Enhancement: <title>
+Feature area: <existing feature being enhanced>
+Affected modules: <list>
+
+### Current behaviour
+<precise description with file references>
+
+### Requested change
+<what the enhancement adds or modifies>
+
+### New behaviour
+<behaviour that does not exist today>
+
+### Unchanged behaviour (protected)
+<what must continue working exactly as before>
+
+### Backward compatibility
+<API changes? DB migrations needed? Breaking changes?>
+
+### Deliberation trace
+- Aligns with decision: <yes | no — reopening required>
+- Relevant prior art: <from memory or deliberation>
+```
+
+## Step 3 — produce delta stories
+
+One story per vertical slice of the change. Each story:
+- States what EXISTS today
+- States what will CHANGE
+- Has Given/When/Then acceptance criteria
+- Lists layers affected (only the layers actually touched)
+
+## Step 4 — implement delta
+
+Follow /implement rules for the delta stories. Same pre-flight checks apply.
+
+## Hard stops — DevGuard blocks if:
+
+- ❌ Rewriting the feature instead of adding a delta
+- ❌ Proceeding without locating existing feature code
+- ❌ Contradicting prior deliberation without reopening the question
+- ❌ Changing tests for areas not listed in Layers affected

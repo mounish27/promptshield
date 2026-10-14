@@ -1,0 +1,170 @@
+---
+description: Fix a bug using strict TDD — write the failing test first, then the minimal fix. Use when: any bug report, null pointer, incorrect calculation, wrong behaviour. Never refactor during a bugfix.
+globs:
+alwaysApply: false
+---
+
+# ITM Bugfix — Test-First, Minimal Fix
+
+You are fixing a bug for ITM. Bug report: **$ARGUMENTS**
+
+## DevGuard L1+L2 check — run before anything else
+
+BLOCK and report if the bug description contains any of these:
+- "refactor", "clean up", "reorganize" → separate /enhance story required
+- "while you're there", "while at it", "adjacent code" → scope creep, not allowed
+- "skip the test", "just fix it" → TDD is mandatory
+- Solution described instead of symptom → ask for symptom, not proposed fix
+
+The description must state: what goes wrong + where + how to reproduce. If any of these are missing, ask before proceeding.
+
+## Step 0 — load deliberation context (if exists)
+
+```bash
+ls .deliberation/*/decision.md 2>/dev/null
+```
+
+If deliberation exists for the affected feature area, read:
+- DECISION line — does the bug contradict it?
+- ALTERNATIVES CONSIDERED — was this edge case discussed?
+- DISSENT — did anyone predict this failure mode?
+
+Note: deliberation is NOT run for individual bug fixes. Exception: if this bug class has appeared 3+ times, recommend `/kickoff` with a deliberation on the root cause pattern.
+
+## Step 1 — search memory for prior bugs
+
+Before touching code, search for:
+- Prior bugs in the same module or feature area
+- Related fixes that may have introduced this regression
+- Known defect classes (off-by-one, null handling, timezone, concurrency)
+
+If prior fixes exist in the same area, flag as potential systemic issue.
+
+## Step 2 — locate the bug
+
+Use the bug description to find affected code:
+1. Grep for domain terms from the bug report (class names, method names, error messages)
+2. Trace the call path from entry point down to domain logic
+3. Identify the layer (interface / application / domain / infrastructure)
+4. Read the existing tests — what is already covered? What is missing?
+
+If you cannot locate the relevant code, STOP and report:
+```
+Cannot locate bug
+Search terms used: <list>
+Files examined: <list>
+Hypothesis: <best guess>
+Recommended next steps: <what would help narrow it down>
+```
+
+Do NOT guess at a fix if you cannot locate the relevant code.
+
+## Step 3 — write the FAILING test first (non-negotiable)
+
+Before touching any production code, write a test that demonstrates the bug.
+
+The test must:
+- Be named for the **bug behaviour**: `should_return_zero_overtime_when_employee_works_exactly_eight_hours`
+- Follow AAA: Arrange / Act / Assert
+- Fail for the **right reason** — assertion failure matches the reported symptom
+- Live in the correct test file for the affected class/module
+
+Run the test and confirm it fails:
+```bash
+# Run only the new test
+npm test -- --grep "should_return_zero_overtime"
+```
+
+**Commit the failing test separately before the fix:**
+```bash
+git add <test-file>
+git commit -m "test: reproduce <bug-summary-slug>
+
+Failing test that demonstrates the reported defect.
+The test will pass once the fix is applied.
+
+Bug: $ARGUMENTS"
+```
+
+This commit must exist in git history before any fix commit. This proves TDD was followed.
+
+## Step 4 — implement the minimal fix
+
+Now — and ONLY now — fix the production code.
+
+Rules:
+- **Change the least code possible** to make the failing test pass
+- **No refactoring** — if adjacent code needs cleanup, note it for a separate /enhance
+- **No feature changes** — if the fix reveals a missing feature, file it separately
+- **No test changes** — the test from Step 3 must pass without modification
+- If the fix touches domain logic, verify it aligns with deliberation decisions
+
+Confirm the reproduction test passes:
+```bash
+npm test -- --grep "should_return_zero_overtime"
+```
+
+## Step 5 — run the full test suite
+
+```bash
+npm test
+```
+
+If any existing tests break:
+1. Check: was the broken test testing **incorrect behaviour** (the bug was baked in)?
+2. If yes — fix the test with a comment explaining why the old assertion was wrong
+3. If no — the fix introduced a regression. Revisit the approach.
+
+## Step 6 — code-reviewer checks root cause
+
+The code-reviewer evaluates:
+- Root cause: does this fix the **cause** or just the **symptom**?
+- Completeness: are there other code paths with the same bug pattern?
+- Edge cases: does the fix introduce new edge cases?
+- Regression risk: could this break existing behaviour?
+- Layer correctness: is the fix in the right architectural layer?
+- Test quality: does the reproduction test actually prove the bug is fixed?
+
+If the reviewer flags the fix as a bandaid (symptom, not cause):
+- Escalate to architect — they decide whether to accept the bandaid with a follow-up ticket or require a deeper fix
+- Do NOT merge a bandaid fix without architect sign-off
+
+## Step 7 — open PR
+
+```markdown
+## Bug fix
+Fixes #<issue>
+
+## Root cause
+<what was actually wrong and why>
+
+## Fix
+<what changed and why this is the correct fix>
+
+## Reproduction test
+- Test: `<test name>`
+- Committed before fix: <SHA of test-only commit>
+
+## Deliberation context
+- Decision record: <path | "No prior deliberation for this area">
+- Alignment: <fix aligns with decisions | fix reveals gap in deliberation>
+
+## Systemic risk
+- Same bug class seen before: yes/no
+- Recommend deliberation on root pattern: yes/no
+
+## Pre-flight results
+- Reproduction test: PASS (was FAIL before fix)
+- Full test suite: PASS
+- Code review: <approved | approved-with-bandaid-followup>
+```
+
+## Hard stops — DevGuard blocks if:
+
+- ❌ Reproduction test not written first
+- ❌ Test and fix in the same commit (TDD proof chain broken)
+- ❌ Refactoring in the same PR as the fix
+- ❌ Adjacent code changed without a separate story
+- ❌ Reproduction test modified to make it pass instead of fixing production code
+- ❌ Fix addresses symptom only — reviewer flags, architect must sign off on bandaid
+- ❌ Cannot reproduce bug but fix submitted anyway

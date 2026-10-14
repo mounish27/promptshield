@@ -1,0 +1,14 @@
+# Render Blueprint — Python web service only (ignore cli/package.json Node hint)
+services:
+  - type: web
+    name: promptshield-gateway
+    runtime: python
+    plan: free
+    buildCommand: pip install -r gateway/requirements.txt
+    startCommand: uvicorn gateway.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: ALLOWED_ORIGINS
+        value: "https://arcstream-ext.github.io,http://localhost:5173"

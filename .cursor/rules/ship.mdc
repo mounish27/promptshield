@@ -1,0 +1,116 @@
+---
+description: Ship a merged feature to production. Gate 2 human approval is absolute — never bypass. Use when: feature is merged to main and ready for production deploy.
+globs:
+alwaysApply: false
+---
+
+# ITM Ship — Production Deploy (Gate 2 Required)
+
+You are shipping to production. PR/feature reference: **$ARGUMENTS**
+
+**This is a Gate 2 human-required flow. You do not bypass. You do not nudge. You do not retry.**
+
+## DevGuard L2+L3 check — BLOCK on any failure
+
+### Step 0 — verify deliberation integrity first
+
+```bash
+SLUG=$(echo "$ARGUMENTS" | sed 's/[^a-z0-9]/-/g')
+node deliberation/verifier.js .deliberation/$SLUG/transcript.json \
+  --workspace . \
+  --output .deliberation/$SLUG/ship-verification.json
+```
+
+| Verifier result | Action |
+|----------------|--------|
+| PASS | Continue |
+| WARN | Continue — surface warnings in deploy summary |
+| FAIL | **ABSOLUTE STOP** — do not deploy. Human must decide whether to override (logged as Gate 2 override) |
+| No .deliberation/ directory | WARN — feature was not adversarially reviewed. Flag for elevated human scrutiny. Continue. |
+
+### Step 1 — pre-flight checklist (all must pass)
+
+1. **Feature merged to main:**
+   ```bash
+   gh pr view $ARGUMENTS --json state,mergedAt --jq '.state'
+   ```
+   Must show `MERGED`. If not: STOP.
+
+2. **Staging is healthy and feature is live there.** Run staging health check. If staging fails: STOP.
+
+3. **No open Gate 1 rejections on related PRs in the last 7 days.**
+   Check `.deliberation/` for any rejection entries related to this feature area.
+
+4. **Deliberation verification passed** (from Step 0).
+
+If any check fails, report exactly which check failed and what the human must do.
+
+### Step 2 — trigger production deploy
+
+```bash
+gh workflow run production-deploy.yml \
+  -f pr_number=$ARGUMENTS \
+  -f deploy_strategy=blue-green \
+  -f deliberation_verified=<PASS|WARN>
+```
+
+### Step 3 — Gate 2: wait for human approval
+
+The `production-deploy.yml` workflow pauses at the `production` environment job and notifies required reviewers.
+
+**You wait. You do not nudge. You do not retry.**
+
+The human reviewer sees:
+- Deliberation decision record summary
+- Verification status (PASS/WARN/FAIL)
+- Pre-flight results
+- Any warnings or overrides
+
+When approved, deploy proceeds with:
+- ECS service update (blue-green)
+- Health check probes (60s grace)
+- Auto-rollback on health check failure
+
+### Step 4 — 30-minute SRE watch window
+
+After deploy completes, watch for 30 minutes. Auto-rollback triggers on:
+- Error rate > 1% above baseline
+- p95 latency > 1.5x baseline
+- 5xx rate > 0.5%
+
+Write deploy summary to memory MCP (if available):
+```
+Title: Shipped PR #<n>: <title>
+Kind: story_summary
+Summary: Deployed at <ts>. Deliberation verified: <PASS|WARN>. Strategy: blue-green. Watch: <clean|issues>.
+Tags: shipped, production
+```
+
+### Step 5 — return ship summary
+
+```markdown
+## Ship summary
+- PR: #<n>
+- Deliberation: <verified PASS | verified WARN | no deliberation>
+- Deploy: <success | rolled back>
+- Watch: <clean for 30min | issues detected>
+- Gate 2 approved by: <reviewer>
+```
+
+## If something goes wrong
+
+| Signal | Action |
+|--------|--------|
+| Deliberation verification FAIL | STOP. Do not deploy. Surface issues. |
+| Health checks fail during deploy | ECS auto-rolls back. Open incident issue. |
+| SRE watch detects regression | Trigger rollback workflow. Page on-call. |
+| Rollback fails | STOP. Page human. Do not retry without direction. |
+
+## Hard stops — DevGuard blocks if:
+
+- ❌ Deliberation verification FAIL → absolute stop, no exceptions
+- ❌ Staging health check skipped
+- ❌ Gate 2 bypassed with admin override (must be logged)
+- ❌ Multiple concurrent prod deploys to the same project
+- ❌ Deploy marked "done" before 30-minute watch window closes
+- ❌ Rollback attempted without escalating to human first

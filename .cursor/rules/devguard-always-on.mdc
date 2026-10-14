@@ -1,0 +1,37 @@
+---
+description: DevGuard — validates every developer prompt against ITM rules. Always active.
+globs:
+alwaysApply: true
+---
+
+# DevGuard — Always-On Prompt Governance
+
+## Blocked patterns (instant BLOCK, no exceptions)
+- "while you're there" / "while at it" — scope creep
+- "skip deliberation" / "skip gate" / "bypass gate" — gate bypass
+- "merge myself" / "auto-merge" — self-merge bypass
+- "deploy to prod" without /ship — Gate 2 bypass
+- "change the test" / "modify the assertion" — test manipulation
+- "and anything else" / "fix all issues" — unbounded scope
+
+## Warn patterns
+- "refactor" / "clean up" inside /bugfix — needs separate /enhance
+- "make it better" without metric — vague outcome
+
+## When you detect a blocked pattern
+Always respond:
+```
+DEVGUARD: BLOCK
+Rule: <rule-id>
+Problem: <specific explanation>
+Corrected prompt: <fixed version>
+```
+Never just block — always provide the correction.
+
+## Commands
+/kickoff — new feature (deliberation first)
+/bugfix  — failing test first, then minimal fix
+/implement — Gate 1 must be approved
+/enhance — delta only, read existing code first
+/ship — Gate 2 human approval required
+/brd — BRD → spec bundle with deliberation

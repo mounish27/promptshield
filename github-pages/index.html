@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptShield Admin</title>
+<style>
+:root{--bg:#07090F;--surface:#0D1117;--panel:#111827;--border:#1F2937;--border2:#374151;--text:#F9FAFB;--muted:#6B7280;--dim:#374151;--blue:#3B82F6;--green:#10B981;--orange:#F59E0B;--red:#EF4444;--purple:#8B5CF6;--cyan:#06B6D4;--font:'JetBrains Mono','Fira Code',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;min-height:100vh}
+input,select{font-family:var(--font);font-size:12px;background:var(--bg);border:1px solid var(--border2);color:var(--text);border-radius:7px;padding:8px 11px;outline:none;width:100%}
+input:focus,select:focus{border-color:var(--blue)}
+button{font-family:var(--font);cursor:pointer;border:none;border-radius:7px;font-size:12px;transition:all .15s}
+.shell{display:flex;min-height:100vh}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.brand{padding:20px 18px 14px;border-bottom:1px solid var(--border)}
+.brand-name{font-size:14px;font-weight:700;letter-spacing:-.02em}
+.brand-name span{color:var(--purple)}
+.brand-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.nav{flex:1;padding:10px 8px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 11px;border-radius:7px;color:var(--muted);cursor:pointer;margin-bottom:2px;border:1px solid transparent;font-size:12px;transition:all .15s;user-select:none}
+.nav-item:hover{background:var(--panel);color:var(--text)}
+.nav-item.active{background:#3B82F620;border-color:#3B82F640;color:var(--blue)}
+.nav-icon{font-size:14px;width:18px;text-align:center}
+.sidebar-foot{padding:14px 16px;border-top:1px solid var(--border)}
+.gw-status{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot.green{background:var(--green);box-shadow:0 0 6px var(--green);animation:pulse 2s infinite}
+.dot.red{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.topbar{padding:14px 28px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.page-title{font-size:15px;font-weight:700}
+.page-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.content{flex:1;padding:24px 28px;overflow-y:auto}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:15px 17px;position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.stat.b::before{background:linear-gradient(90deg,var(--blue),transparent)}
+.stat.g::before{background:linear-gradient(90deg,var(--green),transparent)}
+.stat.o::before{background:linear-gradient(90deg,var(--orange),transparent)}
+.stat.p::before{background:linear-gradient(90deg,var(--purple),transparent)}
+.stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px}
+.stat-val{font-size:26px;font-weight:700;line-height:1}
+.stat-sub{font-size:10px;color:var(--muted);margin-top:5px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.panel-head{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.panel-body{padding:15px 18px}
+table{width:100%;border-collapse:collapse}
+th{padding:7px 11px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);white-space:nowrap;font-weight:500}
+td{padding:10px 11px;border-bottom:1px solid #1F293760}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#1F293730}
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:5px;font-size:10px;font-weight:700}
+.bg{background:#10B98120;color:var(--green);border:1px solid #10B98130}
+.br{background:#EF444420;color:var(--red);border:1px solid #EF444430}
+.bo{background:#F59E0B20;color:var(--orange);border:1px solid #F59E0B30}
+.bb{background:#3B82F620;color:var(--blue);border:1px solid #3B82F630}
+.bp{background:#8B5CF620;color:var(--purple);border:1px solid #8B5CF630}
+.bd{background:var(--dim);color:var(--muted)}
+.bar-wrap{display:flex;align-items:center;gap:7px}
+.bar-track{flex:1;height:4px;background:var(--border);border-radius:2px;overflow:hidden;min-width:60px}
+.bar-fill{height:100%;border-radius:2px;transition:width .5s}
+.btn{padding:7px 14px;font-size:11px;font-weight:600}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#2563EB}
+.btn-ghost{background:transparent;border:1px solid var(--border2);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--text);color:var(--text)}
+.btn-danger{background:#EF444420;border:1px solid #EF444430;color:var(--red)}
+.overlay{position:fixed;inset:0;background:#000000A0;z-index:100;display:flex;align-items:center;justify-content:center;animation:fi .15s}
+@keyframes fi{from{opacity:0}to{opacity:1}}
+.modal{background:var(--panel);border:1px solid var(--border2);border-radius:12px;padding:28px;width:480px;box-shadow:0 24px 80px #000C;animation:si .15s}
+@keyframes si{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.modal-title{font-size:14px;font-weight:700}
+.mcls{background:transparent;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:2px 6px}
+.frow{margin-bottom:13px}
+.flabel{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;display:block}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.factions{display:flex;gap:8px;margin-top:20px}
+.token-box{background:var(--bg);border:1px solid var(--border2);border-radius:7px;padding:11px 14px;display:flex;align-items:center;gap:10px;margin-top:10px}
+.token-val{font-size:11px;color:var(--green);word-break:break-all;flex:1}
+.copy-btn{padding:4px 10px;background:var(--border);border:1px solid var(--border2);color:var(--muted);border-radius:5px;cursor:pointer;font-size:10px;white-space:nowrap;flex-shrink:0}
+.log-row{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid #1F293750;font-size:11px}
+.log-row:last-child{border:none}
+.minichart{display:flex;align-items:flex-end;gap:3px;height:36px}
+.minibar{flex:1;border-radius:2px 2px 0 0;min-height:2px}
+.alert{display:flex;align-items:center;gap:10px;padding:10px 16px;border-radius:8px;margin-bottom:14px;font-size:12px}
+.aw{background:#F59E0B15;border:1px solid #F59E0B40;color:var(--orange)}
+.ai{background:#3B82F615;border:1px solid #3B82F640;color:var(--blue)}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--panel);border:1px solid var(--border2);border-radius:9px;padding:12px 18px;font-size:12px;z-index:200;display:flex;align-items:center;gap:10px;box-shadow:0 8px 32px #000A;animation:si .2s}
+.tabs{display:flex;gap:4px;margin-bottom:14px}
+.tab{padding:5px 13px;border-radius:6px;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:11px}
+.tab.active{background:#3B82F620;border-color:#3B82F640;color:var(--blue)}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="sidebar">
+  <div class="brand">
+    <div class="brand-name">⬡ <span>Prompt</span>Shield</div>
+    <div class="brand-sub">Admin Dashboard v1.0</div>
+  </div>
+  <nav class="nav" id="nav">
+    <div class="nav-item active" onclick="go('overview',this)"><span class="nav-icon">◈</span>Overview</div>
+    <div class="nav-item" onclick="go('developers',this)"><span class="nav-icon">◉</span>Developers</div>
+    <div class="nav-item" onclick="go('usage',this)"><span class="nav-icon">≡</span>Usage Logs</div>
+    <div class="nav-item" onclick="go('devguard',this)"><span class="nav-icon">⬡</span>DevGuard</div>
+    <div class="nav-item" onclick="go('settings',this)"><span class="nav-icon">⚙</span>Settings</div>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="gw-status"><div class="dot green" id="gw-dot"></div><span id="gw-lbl">Connecting...</span></div>
+    <div style="font-size:10px;color:var(--dim);margin-top:5px" id="gw-url"></div>
+  </div>
+</aside>
+
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="page-title" id="pg-title">Overview</div>
+      <div class="page-sub" id="pg-sub">Token usage · DevGuard activity · Budget</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" onclick="openAdd()">+ Add Developer</button>
+      <button class="btn btn-ghost" onclick="load()">↺ Refresh</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div id="page-overview">
+      <div id="bal" class="alert aw" style="display:none"><span>⚠</span><span id="bal-txt"></span></div>
+      <div class="stats">
+        <div class="stat b"><div class="stat-label">Active devs</div><div class="stat-val" id="s0">—</div><div class="stat-sub" id="s0s"></div></div>
+        <div class="stat g"><div class="stat-label">Budget MTD</div><div class="stat-val" id="s1">—</div><div class="stat-sub" id="s1s">of $200</div></div>
+        <div class="stat o"><div class="stat-label">Tokens today</div><div class="stat-val" id="s2">—</div><div class="stat-sub" id="s2s"></div></div>
+        <div class="stat p"><div class="stat-label">Blocks today</div><div class="stat-val" id="s3">—</div><div class="stat-sub" id="s3s"></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:16px">
+        <div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">Developer usage</span><button class="btn btn-ghost" onclick="go('developers',null)">Manage →</button></div>
+            <table><thead><tr><th>Developer</th><th>Daily</th><th>Monthly</th><th>Cost MTD</th><th>Pass rate</th><th>Status</th></tr></thead><tbody id="ov-devs"></tbody></table>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">Live activity</span></div>
+            <div id="ov-log" style="padding:0 18px 8px"></div>
+          </div>
+        </div>
+        <div>
+          <div class="panel" style="margin-bottom:14px">
+            <div class="panel-head"><span class="panel-title">Budget</span></div>
+            <div class="panel-body" style="text-align:center">
+              <svg width="140" height="88" viewBox="0 0 140 88" style="display:block;margin:0 auto">
+                <path d="M16 78 A54 54 0 0 1 124 78" fill="none" stroke="#1F2937" stroke-width="10" stroke-linecap="round"/>
+                <path id="gauge" d="M16 78 A54 54 0 0 1 124 78" fill="none" stroke="#10B981" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 169" style="transition:all .8s"/>
+                <text id="gpct" x="70" y="66" text-anchor="middle" fill="#F9FAFB" font-size="18" font-weight="700" font-family="monospace">0%</text>
+                <text id="gamt" x="70" y="80" text-anchor="middle" fill="#6B7280" font-size="9" font-family="monospace">$0/$200</text>
+              </svg>
+              <div id="thresh" style="margin-top:8px;text-align:left"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><span class="panel-title">7-day cost</span></div>
+            <div class="panel-body">
+              <div class="minichart" id="mchart"></div>
+              <div id="mchartlbl" style="display:flex;justify-content:space-between;margin-top:4px;font-size:9px;color:var(--muted)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DEVELOPERS -->
+    <div id="page-developers" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div class="tabs">
+          <div class="tab active" onclick="flt('all',this)">All</div>
+          <div class="tab" onclick="flt('active',this)">Active</div>
+          <div class="tab" onclick="flt('inactive',this)">Inactive</div>
+        </div>
+        <input id="dsrch" placeholder="Search name or email..." style="max-width:260px" oninput="rDevs()">
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title" id="dev-count">Developers</span><button class="btn btn-primary" onclick="openAdd()">+ Add by email</button></div>
+        <table><thead><tr><th>Name / Email</th><th>Team</th><th>Role</th><th>Daily limit</th><th>Monthly limit</th><th>Cost MTD</th><th>Pass rate</th><th>Status</th><th>Last seen</th><th></th></tr></thead><tbody id="dev-tbl"></tbody></table>
+      </div>
+    </div>
+
+    <!-- USAGE LOGS -->
+    <div id="page-usage" style="display:none">
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input id="lsrch" placeholder="Search developer, tool..." style="max-width:260px" oninput="rLogs()">
+        <select id="lv" onchange="rLogs()" style="width:160px">
+          <option value="">All verdicts</option>
+          <option>PASS</option><option>WARN</option><option>BLOCK</option>
+        </select>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Usage events</span><span id="lcnt" style="font-size:11px;color:var(--muted)"></span></div>
+        <table><thead><tr><th>Developer</th><th>Tool</th><th>Model</th><th>Tokens</th><th>Cost</th><th>DevGuard</th><th>Time</th></tr></thead><tbody id="log-tbl"></tbody></table>
+      </div>
+    </div>
+
+    <!-- DEVGUARD -->
+    <div id="page-devguard" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="panel"><div class="panel-head"><span class="panel-title">Top blocks this week</span></div><div id="dg-rules" class="panel-body"></div></div>
+        <div class="panel"><div class="panel-head"><span class="panel-title">Block rate by developer</span></div><div id="dg-devs" class="panel-body"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Recent blocks</span></div>
+        <table><thead><tr><th>Developer</th><th>Rule</th><th>Level</th><th>Prompt snippet</th><th>Time</th></tr></thead><tbody id="dg-tbl"></tbody></table>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" style="display:none">
+      <div class="panel" style="max-width:520px">
+        <div class="panel-head"><span class="panel-title">Gateway connection</span></div>
+        <div class="panel-body">
+          <div class="frow"><label class="flabel">Gateway URL</label><input id="cfg-gw" placeholder="http://localhost:8000"></div>
+          <div class="frow"><label class="flabel">Admin key</label><input id="cfg-ak" type="password" placeholder="your-devguard-admin-key"></div>
+          <div class="frow"><label class="flabel">Total budget ($)</label><input id="cfg-budget" type="number" value="200" style="max-width:120px"></div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <button class="btn btn-primary" onclick="saveSettings()">Save and reconnect</button>
+            <span id="cfg-st" style="font-size:11px;color:var(--muted)"></span>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="max-width:520px;margin-top:12px">
+        <div class="panel-head"><span class="panel-title">Regenerate developer token</span></div>
+        <div class="panel-body">
+          <div class="alert ai" style="margin-bottom:12px"><span>ℹ</span><span>Use if a developer loses their token. Old token is invalidated immediately.</span></div>
+          <div style="display:flex;gap:8px">
+            <input id="rg-email" placeholder="developer@team.com">
+            <button class="btn btn-ghost" style="white-space:nowrap" onclick="regenTok()">Regenerate</button>
+          </div>
+          <div id="rg-res" style="margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- ADD MODAL -->
+<div id="madd" class="overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">Add developer</span><button class="mcls" onclick="G('madd').style.display='none'">×</button></div>
+    <div id="madd-form">
+      <div class="fgrid">
+        <div class="frow"><label class="flabel">Full name *</label><input id="an" placeholder="Ananya R."></div>
+        <div class="frow"><label class="flabel">Email *</label><input id="ae" type="email" placeholder="ananya@team.com"></div>
+      </div>
+      <div class="fgrid">
+        <div class="frow"><label class="flabel">Team</label><input id="at" placeholder="Frontend"></div>
+        <div class="frow"><label class="flabel">Role</label><select id="ar"><option value="developer">Developer</option><option value="admin">Admin</option></select></div>
+      </div>
+      <div class="fgrid">
+        <div class="frow"><label class="flabel">Daily token limit</label><input id="adl" type="number" value="500000"></div>
+        <div class="frow"><label class="flabel">Monthly token limit</label><input id="aml" type="number" value="5000000"></div>
+      </div>
+      <div class="factions">
+        <button class="btn btn-primary" onclick="createDev()" style="flex:1">Generate token &amp; add</button>
+        <button class="btn btn-ghost" onclick="G('madd').style.display='none'">Cancel</button>
+      </div>
+    </div>
+    <div id="madd-res" style="display:none">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Developer added. Share this token once — it cannot be recovered.</div>
+      <div class="token-box"><span class="token-val" id="ntok"></span><button class="copy-btn" onclick="cp(G('ntok').textContent);toast('Token copied')">Copy</button></div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted)">One-command install for the developer:</div>
+      <div class="token-box"><span class="token-val" id="nicmd" style="color:var(--cyan)"></span><button class="copy-btn" onclick="cp(G('nicmd').textContent);toast('Command copied')">Copy</button></div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:12px" onclick="G('madd').style.display='none';load()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div id="medit" class="overlay" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title" id="et">Edit developer</span><button class="mcls" onclick="G('medit').style.display='none'">×</button></div>
+    <div class="fgrid">
+      <div class="frow"><label class="flabel">Daily token limit</label><input id="edl" type="number"></div>
+      <div class="frow"><label class="flabel">Monthly token limit</label><input id="eml" type="number"></div>
+    </div>
+    <div class="fgrid">
+      <div class="frow"><label class="flabel">Role</label><select id="er"><option value="developer">Developer</option><option value="admin">Admin</option></select></div>
+      <div class="frow"><label class="flabel">Status</label><select id="es"><option value="active">Active</option><option value="inactive">Inactive</option></select></div>
+    </div>
+    <div class="factions">
+      <button class="btn btn-primary" onclick="saveDev()" style="flex:1">Save changes</button>
+      <button class="btn btn-danger" onclick="revoke()">Revoke access</button>
+    </div>
+  </div>
+</div>
+
+<div id="tst" class="toast" style="display:none"></div>
+
+<script>
+const G=id=>document.getElementById(id);
+const fmt=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(0)+'k':String(n||0);
+const pct=(v,m)=>Math.min(100,Math.round((v||0)/Math.max(m||1,1)*100));
+const bc=p=>p>80?'#EF4444':p>60?'#F59E0B':'#10B981';
+const ts=iso=>{if(!iso)return'never';const d=(Date.now()-new Date(iso).getTime())/60000;return d<1?'just now':d<60?`${Math.round(d)}m ago`:d<1440?`${Math.round(d/60)}h ago`:`${Math.round(d/1440)}d ago`};
+const cp=t=>navigator.clipboard?.writeText(t);
+
+let CFG={gw:localStorage.getItem('ps_gw')||'http://localhost:8000',ak:localStorage.getItem('ps_ak')||'',budget:parseFloat(localStorage.getItem('ps_budget')||'200')};
+let D={developers:[],recentEvents:[],dailyCosts:[],summary:{}};
+let FLT='all',EID=null;
+
+function toast(msg,type='ok'){
+  const el=G('tst');
+  el.innerHTML=`<span style="color:${type==='ok'?'#10B981':type==='err'?'#EF4444':'#F59E0B'}">${type==='ok'?'✓':'✕'}</span> ${msg}`;
+  el.style.display='flex';
+  setTimeout(()=>el.style.display='none',3000);
+}
+
+const PAGES={overview:'Overview',developers:'Developers',usage:'Usage Logs',devguard:'DevGuard',settings:'Settings'};
+const SUBS={overview:'Token usage · DevGuard activity · Budget',developers:'Add, manage, and revoke developer access',usage:'Full audit trail of every request',devguard:'Blocked prompts · Rule violations',settings:'Gateway URL · Admin key · Budget'};
+
+function go(p,el){
+  document.querySelectorAll('[id^=page-]').forEach(e=>e.style.display='none');
+  document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
+  G('page-'+p).style.display='';
+  if(el)el.classList.add('active');
+  else{const items=document.querySelectorAll('.nav-item');items.forEach(i=>{if(i.textContent.toLowerCase().includes(p.slice(0,4)))i.classList.add('active')});}
+  G('pg-title').textContent=PAGES[p]||p;
+  G('pg-sub').textContent=SUBS[p]||'';
+  if(p==='settings'){G('cfg-gw').value=CFG.gw;G('cfg-ak').value=CFG.ak;G('cfg-budget').value=CFG.budget;}
+}
+
+async function apicall(method,path,body){
+  const r=await fetch(CFG.gw+path,{method,headers:{'Content-Type':'application/json','Authorization':`Bearer ${CFG.ak}`},...(body?{body:JSON.stringify(body)}:{})});
+  if(!r.ok)throw new Error(await r.text());
+  return r.json();
+}
+
+async function load(){
+  G('gw-lbl').textContent='Connecting...';
+  try{
+    D=await apicall('GET','/api/v1/admin/usage-summary');
+    G('gw-dot').className='dot green';G('gw-lbl').textContent='Gateway online';
+    G('gw-url').textContent=CFG.gw.replace(/https?:\/\//,'');
+  }catch{
+    try{const r=await fetch('./data/usage.json');if(r.ok)D=await r.json();}catch{}
+    G('gw-dot').className='dot red';G('gw-lbl').textContent='Offline';
+  }
+  render();
+}
+
+function render(){rStats();rGauge();rChart();rOvDevs();rOvLog();rDevs();rLogs();rDG();}
+
+function rStats(){
+  const s=D.summary||{},devs=D.developers||[];
+  const active=devs.filter(d=>d.active||d.status==='active').length;
+  G('s0').textContent=active;G('s0s').textContent=`${devs.length} total`;
+  const sp=s.spentMtd||0;
+  G('s1').textContent=`$${sp.toFixed(2)}`;G('s1s').textContent=`${((sp/CFG.budget)*100).toFixed(1)}% of $${CFG.budget}`;
+  G('s2').textContent=fmt(s.tokensToday||0);G('s2s').textContent=`${s.requestsToday||0} requests`;
+  G('s3').textContent=s.blocksToday||0;G('s3s').textContent=`${s.warnsToday||0} warnings`;
+  const p=(sp/CFG.budget)*100;
+  if(p>=50){G('bal').style.display='flex';G('bal-txt').textContent=`Budget ${p.toFixed(0)}% used ($${sp.toFixed(2)} of $${CFG.budget})`;}
+}
+
+function rGauge(){
+  const sp=(D.summary||{}).spentMtd||0,p=Math.min(100,(sp/CFG.budget)*100);
+  const color=p>80?'#EF4444':p>60?'#F59E0B':'#10B981';
+  G('gauge').setAttribute('stroke-dasharray',`${(p/100)*169} 169`);
+  G('gauge').setAttribute('stroke',color);
+  G('gpct').textContent=p.toFixed(0)+'%';G('gamt').textContent=`$${sp.toFixed(2)}/$${CFG.budget}`;
+  G('thresh').innerHTML=[{p:50,l:'50%'},{p:75,l:'75%'},{p:90,l:'90%'}].map(t=>{
+    const hit=p>=t.p,c=hit?(t.p>=90?'br':'bo'):'bd';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;font-size:11px"><span style="color:var(--muted)">${t.l} — $${(CFG.budget*t.p/100).toFixed(0)}</span><span class="badge ${c}">${hit?'Triggered':'Pending'}</span></div>`;
+  }).join('');
+}
+
+function rChart(){
+  const costs=D.dailyCosts||[];if(!costs.length)return;
+  const max=Math.max(...costs.map(d=>d.cost||0),.01);
+  G('mchart').innerHTML=costs.map((d,i)=>`<div class="minibar" style="height:${Math.max(2,((d.cost||0)/max)*34)}px;background:${i===costs.length-1?'#3B82F6':'#1F2937'}"></div>`).join('');
+  G('mchartlbl').innerHTML=costs.map(d=>`<span>${d.day||''}</span>`).join('');
+}
+
+function rOvDevs(){
+  const devs=(D.developers||[]).slice(0,6);
+  G('ov-devs').innerHTML=devs.length?devs.map(d=>{
+    const dp=pct(d.tokensToday,d.dailyLimit||500000),mp=pct(d.tokensMonth,d.monthlyLimit||5000000);
+    const pr=d.totalPrompts>0?Math.round((d.passed||0)/d.totalPrompts*100):100;
+    const pc=pr>=80?'#10B981':pr>=60?'#F59E0B':'#EF4444';
+    const act=d.active||d.status==='active';
+    return `<tr><td><div style="font-weight:600">${d.name}</div><div style="font-size:10px;color:var(--muted)">${d.email||d.team||''}</div></td>
+    <td><div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:${dp}%;background:${bc(dp)}"></div></div><span style="font-size:10px;color:var(--muted)">${fmt(d.tokensToday||0)}</span></div></td>
+    <td><div class="bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:${mp}%;background:${bc(mp)}"></div></div><span style="font-size:10px;color:var(--muted)">${fmt(d.tokensMonth||0)}</span></div></td>
+    <td style="color:var(--green)">$${(d.costMonth||0).toFixed(2)}</td>
+    <td><span style="color:${pc};font-weight:700">${pr}%</span></td>
+    <td><span class="badge ${act?'bg':'bd'}">${act?'Active':'Inactive'}</span></td></tr>`;
+  }).join(''):'<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px">No developers yet — add one →</td></tr>';
+}
+
+function rOvLog(){
+  const evs=(D.recentEvents||[]).slice(0,12);
+  const vc={PASS:{c:'#10B981',l:'✓ PASS'},WARN:{c:'#F59E0B',l:'⚠ WARN'},BLOCK:{c:'#EF4444',l:'✕ BLOCK'}};
+  G('ov-log').innerHTML=evs.length?evs.map(e=>{const v=vc[e.devguardVerdict||e.verdict||'PASS']||vc.PASS;
+    return `<div class="log-row"><span style="min-width:90px;font-weight:600">${e.developer||'—'}</span><span style="min-width:80px;color:var(--blue)">${e.tool||'chat'}</span><span style="min-width:70px;color:var(--muted)">${fmt(e.totalTokens||0)}</span><span style="min-width:55px;color:var(--green)">$${(e.costUsd||0).toFixed(3)}</span><span style="background:${v.c}20;color:${v.c};padding:1px 7px;border-radius:3px;font-size:10px;font-weight:700">${v.l}</span><span style="color:var(--dim);margin-left:auto">${e.ts?new Date(e.ts).toLocaleTimeString():''}</span></div>`;
+  }).join(''):'<div style="text-align:center;color:var(--muted);padding:20px;font-size:12px">No activity yet</div>';
+}
+
+function flt(f,el){FLT=f;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');rDevs();}
+
+function rDevs(){
+  const q=(G('dsrch')?.value||'').toLowerCase();
+  let devs=D.developers||[];
+  if(FLT==='active')devs=devs.filter(d=>d.active||d.status==='active');
+  if(FLT==='inactive')devs=devs.filter(d=>!d.active&&d.status!=='active');
+  if(q)devs=devs.filter(d=>(d.name+' '+d.email+' '+d.team).toLowerCase().includes(q));
+  G('dev-count').textContent=`Developers (${devs.length})`;
+  G('dev-tbl').innerHTML=devs.length?devs.map(d=>{
+    const pr=d.totalPrompts>0?Math.round((d.passed||0)/d.totalPrompts*100):100;
+    const pc=pr>=80?'bg':pr>=60?'bo':'br';
+    const act=d.active||d.status==='active';
+    return `<tr><td><div style="font-weight:600">${d.name}</div><div style="font-size:10px;color:var(--muted)">${d.email||''}</div></td>
+    <td style="color:var(--muted)">${d.team||'—'}</td>
+    <td><span class="badge ${d.role==='admin'?'bp':'bb'}">${d.role||'developer'}</span></td>
+    <td style="color:var(--muted)">${fmt(d.dailyLimit||500000)}</td>
+    <td style="color:var(--muted)">${fmt(d.monthlyLimit||5000000)}</td>
+    <td style="color:var(--green)">$${(d.costMonth||0).toFixed(2)}</td>
+    <td><span class="badge ${pc}">${pr}%</span></td>
+    <td><span class="badge ${act?'bg':'bd'}">${act?'Active':'Inactive'}</span></td>
+    <td style="color:var(--muted);font-size:11px">${ts(d.lastSeenAt)}</td>
+    <td><button class="btn btn-ghost" onclick="openEdit('${d.id}')">Edit</button></td></tr>`;
+  }).join(''):'<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:24px">No developers found</td></tr>';
+}
+
+function rLogs(){
+  const q=(G('lsrch')?.value||'').toLowerCase(),vf=G('lv')?.value||'';
+  let evs=D.recentEvents||[];
+  if(q)evs=evs.filter(e=>(e.developer+' '+e.tool).toLowerCase().includes(q));
+  if(vf)evs=evs.filter(e=>(e.devguardVerdict||e.verdict||'PASS')===vf);
+  G('lcnt').textContent=`${evs.length} events`;
+  const vc={PASS:{c:'#10B981',l:'✓ PASS'},WARN:{c:'#F59E0B',l:'⚠ WARN'},BLOCK:{c:'#EF4444',l:'✕ BLOCK'}};
+  G('log-tbl').innerHTML=evs.slice(0,100).map(e=>{const v=vc[e.devguardVerdict||e.verdict||'PASS']||vc.PASS;
+    return `<tr><td style="font-weight:600">${e.developer||'—'}</td><td style="color:var(--blue)">${e.tool||'chat'}</td><td style="color:var(--muted);font-size:11px">${(e.model||'').replace('claude-','')}</td><td>${fmt(e.totalTokens||0)}</td><td style="color:var(--green)">$${(e.costUsd||e.cost_usd||0).toFixed(3)}</td><td><span style="background:${v.c}20;color:${v.c};padding:1px 7px;border-radius:3px;font-size:10px;font-weight:700">${v.l}</span></td><td style="color:var(--muted);font-size:11px">${e.ts?new Date(e.ts).toLocaleTimeString():''}</td></tr>`;
+  }).join('');
+}
+
+function rDG(){
+  const blocks=(D.recentEvents||[]).filter(e=>(e.devguardVerdict||e.verdict||'PASS')==='BLOCK');
+  G('dg-tbl').innerHTML=blocks.slice(0,30).map(e=>`<tr><td style="font-weight:600">${e.developer||'—'}</td><td style="color:var(--red)">${e.rule||'—'}</td><td><span class="badge ${e.level==='L1'?'bb':e.level==='L2'?'bp':'bo'}">${e.level||'L1'}</span></td><td style="color:var(--muted);font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.prompt_snippet||e.tool||''}</td><td style="color:var(--muted);font-size:11px">${e.ts?new Date(e.ts).toLocaleTimeString():''}</td></tr>`).join('')||'<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No blocks recorded — all prompts passing ✓</td></tr>';
+  const rules={};blocks.forEach(e=>{if(e.rule)rules[e.rule]=(rules[e.rule]||0)+1});
+  G('dg-rules').innerHTML=Object.entries(rules).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([r,c])=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><span style="font-size:11px;color:var(--muted)">${r}</span><span class="badge br">${c}×</span></div>`).join('')||'<div style="color:var(--muted);font-size:11px;padding:6px 0">No blocks yet</div>';
+  const byDev={};(D.recentEvents||[]).forEach(e=>{if(!byDev[e.developer])byDev[e.developer]={p:0,b:0,w:0};const v=e.devguardVerdict||e.verdict||'PASS';byDev[e.developer][v==='BLOCK'?'b':v==='WARN'?'w':'p']++;});
+  G('dg-devs').innerHTML=Object.entries(byDev).map(([name,v])=>{const t=v.p+v.b+v.w,pr=t?Math.round(v.p/t*100):100,pc=pr>=80?'#10B981':pr>=60?'#F59E0B':'#EF4444';return `<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="font-weight:600">${name}</span><span style="color:${pc};font-weight:700">${pr}%</span></div><div class="bar-track" style="height:5px"><div class="bar-fill" style="width:${pr}%;background:${pc}"></div></div></div>`;}).join('')||'<div style="color:var(--muted);font-size:11px;padding:6px 0">No data</div>';
+}
+
+function openAdd(){G('madd-form').style.display='';G('madd-res').style.display='none';G('an').value='';G('ae').value='';G('at').value='';G('madd').style.display='flex';setTimeout(()=>G('an').focus(),50);}
+
+async function createDev(){
+  const name=G('an').value.trim(),email=G('ae').value.trim(),team=G('at').value.trim(),role=G('ar').value;
+  if(!name||!email){toast('Name and email required','err');return;}
+  try{
+    const res=await apicall('POST','/api/v1/developers/create',{name,email,team,role,daily_limit:parseInt(G('adl').value)||500000,monthly_limit:parseInt(G('aml').value)||5000000});
+    G('ntok').textContent=res.token;
+    G('nicmd').textContent=`curl -fsSL ${CFG.gw.replace(':8000','')}/install.sh | bash -s -- --token ${res.token} --name "${name}"`;
+    G('madd-form').style.display='none';G('madd-res').style.display='';
+    toast(`${name} added`);
+  }catch(e){toast('Failed: '+e.message,'err');}
+}
+
+function openEdit(id){
+  const d=(D.developers||[]).find(x=>x.id===id);if(!d)return;
+  EID=id;G('et').textContent=`Edit — ${d.name}`;
+  G('edl').value=d.dailyLimit||500000;G('eml').value=d.monthlyLimit||5000000;
+  G('er').value=d.role||'developer';G('es').value=d.active||d.status==='active'?'active':'inactive';
+  G('medit').style.display='flex';
+}
+
+async function saveDev(){
+  if(!EID)return;
+  try{
+    await apicall('PATCH',`/api/v1/developers/${EID}`,{daily_limit:parseInt(G('edl').value),monthly_limit:parseInt(G('eml').value),role:G('er').value,status:G('es').value});
+    G('medit').style.display='none';toast('Saved');load();
+  }catch(e){toast('Failed: '+e.message,'err');}
+}
+
+async function revoke(){
+  if(!EID||!confirm('Revoke access? Developer gets 401 immediately.'))return;
+  try{await apicall('PATCH',`/api/v1/developers/${EID}`,{status:'inactive'});G('medit').style.display='none';toast('Access revoked');load();}
+  catch(e){toast('Failed: '+e.message,'err');}
+}
+
+async function saveSettings(){
+  CFG.gw=G('cfg-gw').value.trim().replace(/\/$/,'');
+  CFG.ak=G('cfg-ak').value.trim();
+  CFG.budget=parseFloat(G('cfg-budget').value)||200;
+  localStorage.setItem('ps_gw',CFG.gw);localStorage.setItem('ps_ak',CFG.ak);localStorage.setItem('ps_budget',CFG.budget);
+  G('cfg-st').textContent='Connecting...';await load();G('cfg-st').textContent='Connected ✓';setTimeout(()=>G('cfg-st').textContent='',2000);
+}
+
+async function regenTok(){
+  const email=G('rg-email').value.trim();if(!email){toast('Enter email','err');return;}
+  try{const r=await apicall('POST','/api/v1/developers/regenerate-token',{email});G('rg-res').innerHTML=`<div class="token-box"><span class="token-val">${r.token}</span><button class="copy-btn" onclick="cp('${r.token}');toast('Copied')">Copy</button></div>`;}
+  catch(e){toast('Failed: '+e.message,'err');}
+}
+
+if(!CFG.ak){setTimeout(()=>{toast('Open Settings to connect your gateway','info');go('settings',null);},600);}
+load();setInterval(load,60000);
+</script>
+</body>
+</html>

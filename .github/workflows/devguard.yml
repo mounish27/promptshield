@@ -1,0 +1,122 @@
+name: PromptShield
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'   # aggregate usage every 5 minutes
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # ── Unit + in-process API tests ───────────────────────────────────────────
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r gateway/requirements.txt
+      - run: python -m pytest tests/ -v
+
+  live-integration:
+    runs-on: ubuntu-latest
+    needs: test
+    if: vars.GATEWAY_URL != ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r gateway/requirements.txt
+      - run: python -m pytest tests/test_integration_live.py -v
+        env:
+          GATEWAY_URL: ${{ vars.GATEWAY_URL }}
+          ADMIN_KEY: ${{ secrets.DEVGUARD_ADMIN_KEY }}
+
+  # ── Usage aggregator (on schedule + push) ────────────────────────────────
+  aggregate:
+    if: github.event_name == 'schedule' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Aggregate usage
+        env:
+          DEVGUARD_ADMIN_KEY: ${{ secrets.DEVGUARD_ADMIN_KEY }}
+          GATEWAY_URL: ${{ secrets.GATEWAY_URL }}
+        run: node devguard/aggregate.js
+
+      - name: Deploy to GitHub Pages
+        uses: actions/checkout@v4
+        with: { ref: gh-pages, path: gh-pages-out, fetch-depth: 1 }
+      - run: |
+          mkdir -p gh-pages-out/data
+          cp github-pages/index.html gh-pages-out/index.html
+          [ -f usage-output.json ] && cp usage-output.json gh-pages-out/data/usage.json || true
+      - name: Commit to gh-pages
+        working-directory: gh-pages-out
+        run: |
+          git config user.name "PromptShield Bot"
+          git config user.email "promptshield-bot@users.noreply.github.com"
+          git add -A
+          git diff --staged --quiet || git commit -m "chore: usage $(date -u +'%H:%M')" && git push origin gh-pages
+
+  # ── PR review (on pull_request) ──────────────────────────────────────────
+  pr-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+
+      - name: Branch naming check (L3-001)
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          if [[ ! "$BRANCH" =~ ^(feat|fix|enhance|gap|chore|docs)/.+ ]]; then
+            echo "::warning::Branch naming: expected feat|fix|enhance|gap/<slug>"
+          fi
+
+      - name: Deliberation verifier
+        run: |
+          SLUG=$(echo "${{ github.head_ref }}" | sed 's|.*/||')
+          if [ -d ".deliberation/$SLUG" ] && [ -f ".deliberation/$SLUG/transcript.json" ]; then
+            node deliberation/verifier.js .deliberation/$SLUG/transcript.json \
+              --workspace . --output .deliberation/$SLUG/verification.json \
+              && echo "VERIFIER=PASS" >> $GITHUB_ENV \
+              || echo "VERIFIER=FAIL" >> $GITHUB_ENV
+          else
+            echo "VERIFIER=NONE" >> $GITHUB_ENV
+          fi
+
+      - name: Post review comment
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          VERDICT="${{ env.VERIFIER }}"
+          BODY="## PromptShield Review\n\n**Deliberation:** $VERDICT\n\nBranch: \`${{ github.head_ref }}\`"
+          gh pr comment ${{ github.event.pull_request.number }} --body "$BODY" 2>/dev/null || true
+
+      - name: Report to gateway
+        if: always()
+        env:
+          GATEWAY_URL: ${{ secrets.GATEWAY_URL }}
+          DEVGUARD_ADMIN_KEY: ${{ secrets.DEVGUARD_ADMIN_KEY }}
+        run: |
+          curl -fsSL -X POST "${GATEWAY_URL}/api/v1/usage/pr-review" \
+            -H "Authorization: Bearer ${DEVGUARD_ADMIN_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"pr\":\"${{ github.event.pull_request.number }}\",\"branch\":\"${{ github.head_ref }}\",\"verdict\":\"${VERIFIER}\"}" \
+            2>/dev/null || true

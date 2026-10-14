@@ -1,0 +1,117 @@
+---
+description: Build an approved story with full deliberation context. Gate 1 must be approved before running this. Use when: spec PR is merged and you have a story file path to build.
+globs:
+alwaysApply: false
+---
+
+# ITM Implement — Build an Approved Story
+
+You will implement story: **$ARGUMENTS**
+
+The argument is either a story file path (`specs/foo/stories/001-add-search.md`) or a GitHub issue number (`#42`).
+
+## DevGuard L2 pre-flight — BLOCK if any fail
+
+Before writing a single line of code, verify:
+
+1. **Gate 1 is approved** — the spec PR for this feature is merged. If not merged, STOP:
+   > "Gate 1 has not been approved for this feature. The spec PR must be reviewed and merged before implementation starts."
+
+2. **Story file exists** at the referenced path. If not found, STOP and list what IS in `specs/`.
+
+3. **Deliberation record exists**:
+   ```bash
+   ls .deliberation/*/decision.md 2>/dev/null
+   ```
+   If no deliberation exists, WARN: "No deliberation found — proceeding without adversarial review. Consider running /kickoff first."
+
+4. **Verification record exists** (verifier was run on deliberation):
+   ```bash
+   cat .deliberation/<slug>/verification.json
+   ```
+
+## Step 0 — load deliberation context (mandatory)
+
+Read the decision record for this feature. The developer agent receives:
+- **DECISION line** — what was agreed, implementation must align
+- **CROSS-EXAMINATION resolutions** — what was challenged and resolved
+- **ALTERNATIVES CONSIDERED** — what was rejected and WHY (do not accidentally implement these)
+- **DISSENT** — concerns to watch for during implementation
+
+If the implementation requires deviating from a deliberation decision:
+- Document the deviation explicitly in the PR description
+- Silent contradictions are the failure mode this system exists to prevent
+
+## Step 1 — set up worktree
+
+```bash
+SLUG=$(echo "$STORY_NAME" | sed 's/[^a-z0-9]/-/g')
+git worktree add ".worktrees/$SLUG" -b "feat/$SLUG" origin/main
+```
+
+## Step 2 — developer implements with TDD
+
+The developer:
+1. Reads the story file completely — all acceptance criteria, layers affected, test strategy
+2. Reads the deliberation decision record
+3. Plans the implementation — checks alignment with deliberation decisions
+4. Implements the vertical slice
+5. Writes tests alongside (TDD)
+6. Self-verifies: typecheck, lint, tests
+
+**Critical rule:** If implementation requires deviating from a deliberation decision, document the deviation and justification. Never silently contradict a decision.
+
+## Step 3 — pre-flight fan-out (parallel)
+
+Once implementation is ready, run these checks:
+
+| Check | What it does |
+|-------|-------------|
+| Security scan | OWASP, dependency CVEs, secret patterns in code |
+| Code review | Architectural fit, deliberation alignment, maintainability |
+| QA vision | Visual diff, a11y, 7-dimension perceptual check |
+
+Each reviewer checks their work against deliberation decisions.
+
+**If any reviewer finds the implementation contradicts a deliberation decision → FAIL, not a suggestion.**
+
+Fan-in: if any FAIL, route specific feedback to developer for revision. Maximum 3 revision loops. After 3 failed loops → escalate to human.
+
+## Step 4 — run verifier
+
+```bash
+node deliberation/verifier.js .deliberation/<feature-slug>/transcript.json \
+  --workspace .worktrees/$SLUG
+```
+
+The verifier auto-extracts assertions from the decision record and checks them against the workspace.
+
+## Step 5 — open PR
+
+```markdown
+## Story
+Closes #<issue>
+
+## Deliberation alignment
+- Decision record: .deliberation/<slug>/decision.md
+- Deviations from deliberation: <none | list each with justification>
+- Verification: PASS (<n> checks)
+
+## What this PR does
+<developer summary>
+
+## Pre-flight results
+- Security: ✅ | ❌
+- Code review: ✅ | ❌
+- Visual regression: ✅ | ❌
+- Verifier: ✅ (<n> assertions passed) | ❌
+```
+
+## Hard stops — DevGuard blocks if:
+
+- ❌ Implementing without reading deliberation decision record
+- ❌ Gate 1 not approved — implementation cannot start
+- ❌ Silently contradicting a deliberation decision
+- ❌ Skipping the verifier because "tests pass"
+- ❌ Self-merging the PR
+- ❌ More than 3 revision loops without escalating to human
