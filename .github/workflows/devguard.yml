@@ -56,13 +56,16 @@ jobs:
         run: node devguard/aggregate.js
 
       - name: Setup gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git"
           if git ls-remote --exit-code --heads origin gh-pages; then
-            git clone --depth=1 --branch gh-pages "$(git remote get-url origin)" gh-pages-out
+            git clone --depth=1 --branch gh-pages "$REPO_URL" gh-pages-out
           else
             mkdir gh-pages-out
             git -C gh-pages-out init
-            git -C gh-pages-out remote add origin "$(git remote get-url origin)"
+            git -C gh-pages-out remote add origin "$REPO_URL"
             git -C gh-pages-out checkout --orphan gh-pages
           fi
       - name: Copy dashboard files
