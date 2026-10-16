@@ -55,10 +55,18 @@ jobs:
           GATEWAY_URL: ${{ secrets.GATEWAY_URL }}
         run: node devguard/aggregate.js
 
-      - name: Deploy to GitHub Pages
-        uses: actions/checkout@v4
-        with: { ref: gh-pages, path: gh-pages-out, fetch-depth: 1 }
-      - run: |
+      - name: Setup gh-pages
+        run: |
+          if git ls-remote --exit-code --heads origin gh-pages; then
+            git clone --depth=1 --branch gh-pages "$(git remote get-url origin)" gh-pages-out
+          else
+            mkdir gh-pages-out
+            git -C gh-pages-out init
+            git -C gh-pages-out remote add origin "$(git remote get-url origin)"
+            git -C gh-pages-out checkout --orphan gh-pages
+          fi
+      - name: Copy dashboard files
+        run: |
           mkdir -p gh-pages-out/data
           cp github-pages/index.html gh-pages-out/index.html
           [ -f usage-output.json ] && cp usage-output.json gh-pages-out/data/usage.json || true
@@ -68,7 +76,10 @@ jobs:
           git config user.name "PromptShield Bot"
           git config user.email "promptshield-bot@users.noreply.github.com"
           git add -A
-          git diff --staged --quiet || git commit -m "chore: usage $(date -u +'%H:%M')" && git push origin gh-pages
+          if ! git diff --staged --quiet; then
+            git commit -m "chore: usage $(date -u +'%H:%M')"
+            git push origin gh-pages
+          fi
 
   # ── PR review (on pull_request) ──────────────────────────────────────────
   pr-review:
