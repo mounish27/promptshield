@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-10-16T07:01:54.383Z",
+  "budgetTotal": 200,
+  "summary": {
+    "spentMtd": 0,
+    "tokensToday": 0,
+    "requestsToday": 0,
+    "blocksToday": 0,
+    "warnsToday": 0
+  },
+  "developers": [],
+  "dailyCosts": [],
+  "recentEvents": [],
+  "alerts": []
+}
